@@ -29,6 +29,12 @@ INCLUDEPATH += include
 # DEPENDPATH = .
 
 SOURCES += \
+    src/journey.cpp \
+    src/journeygateway.cpp \
+    src/journeysearch.cpp \
+    src/journeybooking.cpp \
+    src/journeywidget.cpp \
+    src/journeynet.cpp \
     lib/base64/src/base64.cpp \
     lib/dns/src/buffer.cpp \
     lib/dns/src/message.cpp \
@@ -64,6 +70,11 @@ SOURCES += \
     lib/sm4/src/sm4.cpp
 
 HEADERS += \
+    include/journey.h \
+    include/journeygateway.h \
+    include/journeysearch.h \
+    include/journeybooking.h \
+    include/journeywidget.h \
     include/12306.h \
     include/analysis.h \
     include/bedwidget.h \

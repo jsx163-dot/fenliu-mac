@@ -34,12 +34,14 @@
 namespace Ui {
 class MainWindow;
 }
+class JourneyWidget;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
+    JourneyWidget *journeyWidget = nullptr;
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     void setRemainTicketColor(QString &remain, QStandardItemModel *model, const QModelIndex &index, bool canCandidate);

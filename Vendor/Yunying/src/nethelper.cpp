@@ -115,8 +115,10 @@ NetHelper::NetHelper(QObject *parent) : QObject(parent),
 
 void NetHelper::networkReplyHandle(QNetworkReply *reply)
 {
+    if (!replyMap.contains(reply)) return;
     replyCallBack rcb = replyMap.value(reply);
-    (this->*rcb)(reply);
+    const quint64 generation = reply->property("journeySubmission").toULongLong();
+    if (!generation || (journeySubmitting && generation == journeyGeneration)) (this->*rcb)(reply);
     replyMap.remove(reply);
     reply->deleteLater();
 }
@@ -194,6 +196,7 @@ void NetHelper::post(const QUrl &url, ReqParam &param, NetHelper::replyCallBack 
     QNetworkRequest request;
     request.setUrl(url);
     request.setTransferTimeout(REQUESTTIMEOUT);
+    if (journeyOwned) request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
 #ifdef HAS_CDN
     if (url.host() == _("kyfw.12306.cn")) {
         QString mainCdn = cdn.getMainCdn();
@@ -212,6 +215,7 @@ void NetHelper::post(const QUrl &url, ReqParam &param, NetHelper::replyCallBack 
     }
     param.finish();
     QNetworkReply *reply = nam->post(request, param.get().toUtf8());
+    if (journeyOwned && journeySubmitting) reply->setProperty("journeySubmission", journeyGeneration);
     replyMap.insert(reply, rcb);
     QDateTime time = QDateTime::currentDateTime();
     rttMap.insert(reply, time.toMSecsSinceEpoch());
@@ -228,6 +232,7 @@ void NetHelper::anyPost(const QUrl &url, ReqParam &param, NetHelper::replyCallBa
     QNetworkRequest request;
     request.setUrl(url);
     request.setTransferTimeout(REQUESTTIMEOUT);
+    if (journeyOwned) request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setHeader(QNetworkRequest::ContentTypeHeader, _("application/x-www-form-urlencoded; charset=UTF-8"));
     request.setRawHeader("User-Agent", USERAGENT);
     param.finish();
@@ -242,6 +247,7 @@ void NetHelper::get(const QUrl &url, replyCallBack rcb, QList<std::pair<QString,
     QNetworkRequest request;
     request.setUrl(url);
     request.setTransferTimeout(REQUESTTIMEOUT);
+    if (journeyOwned) request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setAttribute(QNetworkRequest::User, queryType);
 #ifdef HAS_CDN
     if (url.host() == _("kyfw.12306.cn")) {
@@ -259,6 +265,7 @@ void NetHelper::get(const QUrl &url, replyCallBack rcb, QList<std::pair<QString,
         request.setRawHeader(it->first.toLatin1(), it->second.toLatin1());
     }
     QNetworkReply *reply = nam->get(request);
+    if (journeyOwned && journeySubmitting) reply->setProperty("journeySubmission", journeyGeneration);
     replyMap.insert(reply, rcb);
     QDateTime time = QDateTime::currentDateTime();
     rttMap.insert(reply, time.toMSecsSinceEpoch());
@@ -411,12 +418,18 @@ int NetHelper::checkReplyOk(QNetworkReply *reply)
         reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
 
     int statusCodeInt = statusCode.toInt();
+    if (reply->property("journeySubmission").toBool() && statusCodeInt != 200) return -1;
     if (statusCodeInt == 301 || statusCodeInt == 302)
     {
         // The target URL if it was a redirect:
         QString redirectionTargetUrl =
             reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toString();
         QUrl url(redirectionTargetUrl);
+#ifdef Q_OS_MACOS
+        if (journeyOwned && (!journeyPayment || !isAllowedPaymentUrl(url))) {
+            w->formatOutput(_("智能备选流程已阻止非受信任重定向，不能继续此请求")); return -1;
+        }
+#endif
         get(url, replyMap.value(reply));
         qDebug() << "redirect to " << redirectionTargetUrl;
     } else if (statusCodeInt != 200) {
@@ -1269,12 +1282,14 @@ void NetHelper::getPassengerInfoReply(QNetworkReply *reply)
         }
     }
     QString message = data[QStringLiteral("notify_for_gat")].toString();
+    emit journeyPassengersChanged();
     if (!message.isEmpty())
         QMessageBox::information(w->loginDialog, tr("温馨提示"), message, QMessageBox::Ok);
 }
 
 void NetHelper::checkUser()
 {
+    if (journeyOwned && !journeySubmitting) return;
     QUrl url(QStringLiteral(LOGINCHECKUSER));
     ReqParam param;
     param.put(_("_json_att"), _(""));
@@ -1447,6 +1462,13 @@ void NetHelper::initMy12306ApiReply(QNetworkReply *reply)
 
 void NetHelper::handleError()
 {
+    if (journeyOwned) {
+        if (!journeySubmitting) return;
+        pauseJourneySubmission();
+        if (journeyMutationSent) emit journeySubmissionFinished();
+        else emit journeySubmissionRejected(_("登录校验未通过，本段尚未发送购票请求；请重新登录后核实"));
+        return;
+    }
     UserData::instance()->recoverRunStatus();
     netStatInc(ESUBMITFAILED);
     resetRefererUrl();
@@ -1454,6 +1476,7 @@ void NetHelper::handleError()
 
 void NetHelper::submitOrderRequest()
 {
+    if (journeyOwned) journeyMutationSent = true;
     QUrl url(QStringLiteral(SUBMITORDERREQUEST));
     ReqParam param;
     UserData *ud = UserData::instance();
@@ -1687,6 +1710,7 @@ void NetHelper::getQueueCountReply(QNetworkReply *reply)
 
 QString NetHelper::getCommitSeatStr()
 {
+    if (journeyOwned) return {};
     QString selectedSeats;
     UserData *ud = UserData::instance();
 
@@ -1728,6 +1752,7 @@ QString NetHelper::getCommitSeatStr()
 
 QString NetHelper::getCommitBedStr()
 {
+    if (journeyOwned) return {};
     UserData *ud = UserData::instance();
     int commitBeds = 0;
     int bedPos[3];
@@ -2021,6 +2046,10 @@ void NetHelper::resultOrderForDcQueue()
 
 void NetHelper::resultOrderForDcQueueReply(QNetworkReply *reply)
 {
+    if (journeyOwned) {
+        Q_UNUSED(reply);
+        pauseJourneySubmission(); emit journeySubmissionFinished(); return;
+    }
     QVariantMap varMap;
     if (replyIsOk(reply, varMap) < 0)
         return;
@@ -2079,6 +2108,7 @@ void NetHelper::saveStationNameFile(const QString &fileName, const QByteArray &t
 
 void NetHelper::mayFrozenCurrentTrain(const QString &dispMsg)
 {
+    if (journeyOwned) return;
     UserData *ud = UserData::instance();
 
     if (ud->grabSetting.autoFrozenTrain) {
@@ -2097,6 +2127,9 @@ bool NetHelper::queryFrozenTrain(const QString &trainDesc)
 
 void NetHelper::grabTicketSuccess()
 {
+    if (journeyOwned) {
+        pauseJourneySubmission(); emit journeySubmissionFinished(); return;
+    }
     //UserData::instance()->runStatus = EIDLE;
     // 结束任务
     UserData *ud = UserData::instance();
@@ -2996,6 +3029,9 @@ void NetHelper::getMyPublicIpReply(QNetworkReply *reply)
 // 支付
 void NetHelper::queryNoCompleteOrder()
 {
+    if (journeyOwned) {
+        w->formatOutput(_("请在智能备选任务中核对并支付对应订单")); return;
+    }
     QUrl url(_(QUERYNOCOMPLETEORDER));
     ReqParam param;
 
@@ -3042,7 +3078,7 @@ void NetHelper::payNoCompleteOrder(const QString &sequenceNo, const QString &arr
     param.put(_("arrive_time_str"), arriveTime.toUtf8().toPercentEncoding());
 
     UserData *ud = UserData::instance();
-    if (!ud->paySetting.activePay) {
+    if (!ud->paySetting.activePay && !journeyPayment) {
         w->formatOutput(_("当前没有开启主动唤起支付，请先在'设置->支付设置'中开启主动唤起支付并选择支付方式"));
         handlePayError();
         return;
@@ -3182,13 +3218,14 @@ void NetHelper::payWebBusiness()
 
     QString tranData = payForm[_("tranData")].toString();
     tranData.remove("\r\n");
-    size_t len;
-    char *data = (char *)decode_base64(tranData.toStdString().c_str(), tranData.size(), &len);
-    data[len] = 0;
-    QByteArray byteData(data);
+    const auto decoded = QByteArray::fromBase64Encoding(tranData.toLatin1(), QByteArray::AbortOnBase64DecodingErrors);
+    if (!decoded || decoded.decoded.isEmpty()) {
+        w->formatOutput(_("支付数据为空或编码无效，已停止打开支付页面"));
+        handlePayError(); return;
+    }
+    QByteArray byteData = decoded.decoded;
     byteData.replace("GBK", "UTF-8");
     byteData.replace('\n', "");
-    delete [] data;
 
     w->formatOutput(_("正在打开支付页面..."));
     QDomDocument doc("tranData");
@@ -3268,6 +3305,7 @@ void NetHelper::payWebBusinessReply(QNetworkReply *reply)
             QList<QNetworkCookie> cookies = cookieJar->cookiesForUrl(reply->url());
             cookies.append(cookieJar2->cookiesForUrl(reply->url()));
             showPaymentPage(w, data, reply->url(), cookies);
+            journeyPayment = false;
             w->formatOutput(_("已在应用内打开支付页面，请核对订单后完成支付"));
 #else
             QString cachePath = getAppCachePath();
@@ -3302,12 +3340,16 @@ void NetHelper::payWebBusinessReply(QNetworkReply *reply)
 
 void NetHelper::handlePayError()
 {
+    journeyPayment = false;
     resetRefererUrl();
 }
 
 // 候补支付
 void NetHelper::cqueryQueue()
 {
+    if (journeyOwned) {
+        w->formatOutput(_("智能备选任务进行中，请先完成或暂停并核实本段订单")); return;
+    }
     ReqParam param;
     post(QUrl(_(CQUERYQUEUE)), param, &NetHelper::cqueryQueueReply);
     w->formatOutput(_("正在查询待支付候补订单..."));

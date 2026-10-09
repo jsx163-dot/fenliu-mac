@@ -12,6 +12,8 @@
 #include <QTemporaryDir>
 #include <QTest>
 #include <QTimer>
+int runJourneyChecks(int argc, char **argv);
+int runJourneyPreview();
 
 class MacChecks : public QObject {
     Q_OBJECT
@@ -136,6 +138,7 @@ private slots:
 
 int runLocalChecks(int argc, char **argv)
 {
+    if (argc == 2 && QString::fromUtf8(argv[1]) == QStringLiteral("--journey-preview")) return runJourneyPreview();
     if (argc == 2 && QString::fromUtf8(argv[1]) == QStringLiteral("--payment-preview")) {
         QWidget parent;
         showPaymentPage(&parent, QByteArray("<html><body style='font:18px system-ui;padding:32px'>"
@@ -146,7 +149,8 @@ int runLocalChecks(int argc, char **argv)
         return qApp->exec();
     }
     MacChecks checks;
-    return QTest::qExec(&checks, argc, argv);
+    const int original = QTest::qExec(&checks, argc, argv);
+    return original | runJourneyChecks(argc, argv);
 }
 
 #include "macchecks.moc"

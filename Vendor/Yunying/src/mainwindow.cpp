@@ -38,6 +38,7 @@
 #include "icondelegate.h"
 #include "version.h"
 #include "12306.h"
+#include "journeywidget.h"
 
 using namespace Qt;
 
@@ -169,6 +170,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
     readSettings();
 
+    auto *views = new QTabWidget(this);
+    views->addTab(takeCentralWidget(), tr("常规查询与抢票"));
+    journeyWidget = new JourneyWidget(this);
+    views->addTab(journeyWidget, tr("智能备选"));
+    setCentralWidget(views);
+    connect(NetHelper::instance(), &NetHelper::journeyPassengersChanged, journeyWidget, [this] {
+        journeyWidget->setPassengerOptions(LocalJourneyGateway::passengerOptions());
+    });
+
     setTabOrder(fromStationLe, toStationLe);
 
     statusBar()->showMessage(QStringLiteral("准备就绪"));
@@ -182,11 +192,14 @@ void MainWindow::setUp()
     seatTypeDialog->setUp();
     loginDialog->setUp();
     selltimeDialog->setup();
+    journeyWidget->importSeats(seatTypeDialog->getSelectedSeatType());
     selltimeDialog->setQueryText(UserData::instance()->userConfig.staFromName);
 }
 
 void MainWindow::updateLoginButtonStatus(bool isLogin)
 {
+    NetHelper::instance()->setJourneyAuthenticated(isLogin);
+    if (!isLogin && journeyWidget) journeyWidget->loggedOut();
     loginButton->disconnect(SIGNAL(pressed()));
 
     if (isLogin) {
@@ -1074,6 +1087,7 @@ void MainWindow::processQueryTicketReply(QVariantMap &data)
 
 void MainWindow::setStationNameCompleter(const QByteArray &nameText)
 {
+    if (journeyWidget) journeyWidget->setStations(nameText);
     InputCompleter *ic, *ic2, *ic3;
     UserData *ud = UserData::instance();
     UserConfig &uc = ud->getUserConfig();
@@ -1460,6 +1474,9 @@ bool MainWindow::promptBeforeStartGrab()
 
 void MainWindow::startOrStopGrabTicket()
 {
+    if (NetHelper::instance()->journeyBusy()) {
+        formatOutput(_("智能备选任务尚未结束，请先在该视图中核对订单")); return;
+    }
     static bool grabTicketPbStatus;
 
     UserData *ud = UserData::instance();
@@ -1854,6 +1871,7 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    if (journeyWidget) journeyWidget->pause();
     /*int ret = QMessageBox::warning(this,
                                    tr("提示"),
                                    tr("退出程序吗？"),

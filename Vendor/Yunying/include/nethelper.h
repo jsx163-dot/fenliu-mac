@@ -16,6 +16,7 @@
 #endif
 #include "serverip.h"
 #include "midstation.h"
+#include "journey.h"
 
 enum QUERYTYPE {
     EQUERYDEFAULT,
@@ -51,6 +52,15 @@ public:
     };
     ~NetHelper();
     static NetHelper *instance();
+    QNetworkReply *journeyRead(const QNetworkRequest &request, const QByteArray &body);
+    bool reserveJourney(QString &error);
+    void releaseJourney();
+    void pauseJourneySubmission();
+    bool submitJourneyLeg(const Journey::Leg &leg, const QStringList &row,
+                          const QStringList &passengers, QString &error);
+    bool journeyBusy() const { return journeyOwned; }
+    void setJourneyAuthenticated(bool value) { journeyAuthenticated = value; }
+    void payJourneyOrder(const QString &id, const QString &arriveTime);
     typedef void (NetHelper::*replyCallBack)(QNetworkReply *);
     inline void netStatInc(enum NETHELPERSTAT stat) {
         Q_ASSERT(stat < ENETHELPERSTATMAX);
@@ -233,9 +243,16 @@ public:
 
 signals:
     void finished(QNetworkReply *reply);
+    void journeySubmissionFinished();
+    void journeySubmissionRejected(const QString &error);
+    void journeyPassengersChanged();
 public slots:
 
 private:
+    bool journeyOwned = false, journeySubmitting = false, journeyAuthenticated = false;
+    bool journeyPayment = false;
+    bool journeyMutationSent = false;
+    quint64 journeyGeneration = 0;
     explicit NetHelper(QObject *parent = nullptr);
     NetHelper(const NetHelper &) Q_DECL_EQ_DELETE;
     NetHelper &operator=(const NetHelper rhs) Q_DECL_EQ_DELETE;
