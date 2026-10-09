@@ -1,3 +1,4 @@
 .build/
+.build-yunying/
 dist/
 .DS_Store
