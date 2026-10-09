@@ -26,6 +26,7 @@ final class FenliuAppDelegate: NSObject, NSApplicationDelegate {
         let controller = MainWindowController(store: store, stationDirectory: stationDirectory)
         windowController = controller
         controller.showWindow(nil)
+        controller.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -166,7 +167,8 @@ final class SidebarViewController: NSViewController {
             stack.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor, constant: 14),
             stack.trailingAnchor.constraint(equalTo: scroll.contentView.trailingAnchor, constant: -14),
             stack.topAnchor.constraint(equalTo: scroll.contentView.topAnchor, constant: 18),
-            stack.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor, constant: -28)
+            stack.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor, constant: -28),
+            stack.heightAnchor.constraint(greaterThanOrEqualTo: scroll.contentView.heightAnchor)
         ])
         view = effect
         reload()
@@ -214,8 +216,8 @@ final class SidebarViewController: NSViewController {
             row.layer?.cornerRadius = 5
             row.contentTintColor = .labelColor
             row.setContentHuggingPriority(.defaultLow, for: .horizontal)
-            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
             stack.addArrangedSubview(row)
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
 
         if let persistenceError = store.persistenceError {
@@ -234,8 +236,8 @@ final class SidebarViewController: NSViewController {
             retry.alignment = .left
             retry.font = .systemFont(ofSize: 10)
             retry.contentTintColor = .secondaryLabelColor
-            retry.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
             stack.addArrangedSubview(retry)
+            retry.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         } else {
             stationStatus.font = .systemFont(ofSize: 10)
             stationStatus.textColor = .tertiaryLabelColor
@@ -258,8 +260,8 @@ final class SidebarViewController: NSViewController {
         button.imagePosition = .imageLeading
         button.alignment = .left
         button.bezelStyle = .rounded
-        button.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         stack.addArrangedSubview(button)
+        button.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
     }
 
 }

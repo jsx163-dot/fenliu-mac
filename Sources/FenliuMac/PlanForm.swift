@@ -132,12 +132,12 @@ private final class PlanFormAccessory {
     private func pairedFields(_ first: (String, NSView), _ second: (String, NSView)) -> NSView {
         let firstBlock = fieldBlock(first.0, control: first.1)
         let secondBlock = fieldBlock(second.0, control: second.1)
-        firstBlock.widthAnchor.constraint(equalTo: secondBlock.widthAnchor).isActive = true
         let row = NSStackView(views: [firstBlock, secondBlock])
         row.orientation = .horizontal
         row.alignment = .top
         row.spacing = 14
         row.distribution = .fillEqually
+        firstBlock.widthAnchor.constraint(equalTo: secondBlock.widthAnchor).isActive = true
         row.widthAnchor.constraint(equalToConstant: 510).isActive = true
         return row
     }

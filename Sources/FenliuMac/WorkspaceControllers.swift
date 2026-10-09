@@ -232,8 +232,8 @@ private final class PlansOverviewViewController: NSViewController {
                 row.spacing = 8
                 row.translatesAutoresizingMaskIntoConstraints = false
                 openButton.widthAnchor.constraint(equalTo: row.widthAnchor, constant: -42).isActive = true
-                row.widthAnchor.constraint(equalTo: list.widthAnchor).isActive = true
                 list.addArrangedSubview(row)
+                row.widthAnchor.constraint(equalTo: list.widthAnchor).isActive = true
                 let rule = NSBox()
                 rule.boxType = .separator
                 list.addArrangedSubview(rule)
@@ -290,10 +290,8 @@ private final class PlanDetailViewController: NSViewController {
         heading.translatesAutoresizingMaskIntoConstraints = false
         root.addSubview(heading)
 
-        let summary = NSStackView(views: [subtitle])
-        summary.orientation = .vertical
-        summary.translatesAutoresizingMaskIntoConstraints = false
-        root.addSubview(summary)
+        subtitle.translatesAutoresizingMaskIntoConstraints = false
+        root.addSubview(subtitle)
 
         let header = NSStackView(views: [
             NSTextField(labelWithString: "日期 / 站点"),
@@ -337,11 +335,11 @@ private final class PlanDetailViewController: NSViewController {
             heading.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 26),
             heading.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -26),
             heading.topAnchor.constraint(equalTo: root.topAnchor, constant: 26),
-            summary.leadingAnchor.constraint(equalTo: heading.leadingAnchor),
-            summary.topAnchor.constraint(equalTo: heading.bottomAnchor, constant: 5),
+            subtitle.leadingAnchor.constraint(equalTo: heading.leadingAnchor),
+            subtitle.topAnchor.constraint(equalTo: heading.bottomAnchor, constant: 5),
             header.leadingAnchor.constraint(equalTo: heading.leadingAnchor),
             header.trailingAnchor.constraint(equalTo: heading.trailingAnchor),
-            header.topAnchor.constraint(equalTo: summary.bottomAnchor, constant: 22),
+            header.topAnchor.constraint(equalTo: subtitle.bottomAnchor, constant: 22),
             scroll.leadingAnchor.constraint(equalTo: heading.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: heading.trailingAnchor),
             scroll.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 9),
@@ -351,7 +349,8 @@ private final class PlanDetailViewController: NSViewController {
             list.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor),
             list.trailingAnchor.constraint(equalTo: scroll.contentView.trailingAnchor),
             list.topAnchor.constraint(equalTo: scroll.contentView.topAnchor),
-            list.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor)
+            list.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
+            list.heightAnchor.constraint(greaterThanOrEqualTo: scroll.contentView.heightAnchor)
         ])
 
         for candidate in plan.candidates.sorted(by: { $0.priority > $1.priority }) {
@@ -364,8 +363,8 @@ private final class PlanDetailViewController: NSViewController {
                 guard let self, self.confirmDeletion() else { return }
                 self.onRemoveCandidate?(candidate.id)
             }
-            row.widthAnchor.constraint(equalTo: list.widthAnchor).isActive = true
             list.addArrangedSubview(row)
+            row.widthAnchor.constraint(equalTo: list.widthAnchor).isActive = true
             let rule = NSBox()
             rule.boxType = .separator
             list.addArrangedSubview(rule)
