@@ -1,6 +1,8 @@
-# 分流 Mac
+# 分流购票app
 
 当前默认使用基于 [云映](https://github.com/zezeez/12306-yunying) 的本地自用版，源码固定在 `61650343505309234ed226ca76a240644df39b05`，位于 `Vendor/Yunying`。旧 Swift 行程工作台仍保留，数据与新版本互不覆盖。两个版本是独立应用，不自动迁移登录信息或行程。
+
+主窗口底部保留“赞助开发”栏和明确标注的广告展示位，常规查询与智能备选共用。当前尚未配置实际收款码或广告素材，仅显示本地占位，不加载第三方内容、广告 SDK 或追踪服务，不自动打开外部网站。改名不改变既有配置命名空间、Bundle ID 或钥匙串服务标识。
 
 ## 云映本地版
 
@@ -29,7 +31,7 @@ CDN 源码保留但不启用：上游需要改版 Qt 的 `setIpAddress`，标准
 ```sh
 brew install qtbase qtcharts qtmultimedia
 sh scripts/package-yunying.sh
-open "dist/分流云映.app"
+open "dist/分流购票app.app"
 ```
 
 打包包含 Qt 运行库、GPLv3 和上游归属说明，使用 ad-hoc 本地签名，无需另装 Qt 即可打开。当前脚本为本机架构和本机 macOS 版本构建，不是跨系统版本/双架构发行包，也没有 Apple 公证。当前机器的 Homebrew Qt 构建要求 macOS 27。

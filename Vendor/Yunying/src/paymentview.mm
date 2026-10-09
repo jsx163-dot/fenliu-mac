@@ -115,7 +115,7 @@ public:
                   const QList<QNetworkCookie> &cookies) : QDialog(parent)
     {
         setAttribute(Qt::WA_DeleteOnClose);
-        setWindowTitle(QStringLiteral("分流云映 · 支付"));
+        setWindowTitle(QStringLiteral("分流购票app · 支付"));
         auto *layout = new QVBoxLayout(this);
         auto *status = new QLabel(QStringLiteral("https://%1").arg(baseUrl.host()), this);
         status->setWordWrap(true);

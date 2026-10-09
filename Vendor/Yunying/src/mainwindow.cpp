@@ -39,6 +39,7 @@
 #include "version.h"
 #include "12306.h"
 #include "journeywidget.h"
+#include "supportbar.h"
 
 using namespace Qt;
 
@@ -171,10 +172,42 @@ MainWindow::MainWindow(QWidget *parent) :
     readSettings();
 
     auto *views = new QTabWidget(this);
+    views->setObjectName("bookingViews");
     views->addTab(takeCentralWidget(), tr("常规查询与抢票"));
     journeyWidget = new JourneyWidget(this);
     views->addTab(journeyWidget, tr("智能备选"));
-    setCentralWidget(views);
+    auto *workspace = new QWidget(this);
+    workspace->setObjectName("bookingWorkspace");
+    auto *workspaceLayout = new QVBoxLayout(workspace);
+    workspaceLayout->setContentsMargins(0, 0, 0, 0);
+    workspaceLayout->setSpacing(0);
+    auto *identity = new QWidget(workspace);
+    auto *identityLayout = new QHBoxLayout(identity);
+    identityLayout->setContentsMargins(14, 8, 14, 8);
+    auto *identityIcon = new QLabel(identity);
+    identityIcon->setPixmap(QIcon(_(":/icon/images/ticket.ico")).pixmap(24, 24));
+    identityIcon->setFixedSize(24, 24);
+    identityLayout->addWidget(identityIcon);
+    auto *name = new QLabel(tr("分流购票app"), identity);
+    name->setObjectName("applicationBrand");
+    name->setTextFormat(Qt::PlainText);
+    QFont nameFont = name->font(); nameFont.setBold(true); nameFont.setPointSize(14);
+    name->setFont(nameFont);
+    identityLayout->addWidget(name);
+    identityLayout->addStretch();
+    workspaceLayout->addWidget(identity);
+    workspaceLayout->addWidget(views, 1);
+    setCentralWidget(workspace);
+    auto *supportDock = new QDockWidget(this);
+    supportDock->setObjectName("supportDock");
+    supportDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    supportDock->setAllowedAreas(Qt::BottomDockWidgetArea);
+    auto *supportTitle = new QWidget(supportDock);
+    supportTitle->setFixedHeight(0);
+    supportDock->setTitleBarWidget(supportTitle);
+    supportDock->setWidget(new SupportBar(supportDock));
+    addDockWidget(Qt::BottomDockWidgetArea, supportDock);
+    splitDockWidget(findChild<QDockWidget *>("bookingControlsDock"), supportDock, Qt::Vertical);
     connect(NetHelper::instance(), &NetHelper::journeyPassengersChanged, journeyWidget, [this] {
         journeyWidget->setPassengerOptions(LocalJourneyGateway::passengerOptions());
     });
@@ -182,6 +215,7 @@ MainWindow::MainWindow(QWidget *parent) :
     setTabOrder(fromStationLe, toStationLe);
 
     statusBar()->showMessage(QStringLiteral("准备就绪"));
+    setWindowTitle(tr("分流购票app · 本地版 ") + tr(THISVERSION));
     resize(QSize(1200, 800));
 }
 
@@ -220,6 +254,7 @@ void MainWindow::createDockWidget()
 {
     QWidget *widget = new QWidget;
     QDockWidget *dock = new QDockWidget;
+    dock->setObjectName("bookingControlsDock");
     dock->setFeatures(QDockWidget::DockWidgetMovable);
     dock->setFeatures(QDockWidget::DockWidgetClosable);
 
@@ -2029,8 +2064,8 @@ void MainWindow::formatWithColorOutput(const QString &output, const QColor color
 
 void MainWindow::about()
 {
-    QMessageBox::about(this, tr("关于分流云映"),
-                       tr("<p>分流云映 · 本地版 " THISVERSION "</p>"
+    QMessageBox::about(this, tr("关于分流购票app"),
+                       tr("<p>分流购票app · 本地版 " THISVERSION "</p>"
                           "<p>基于 zezeez/12306-yunying，版本 6165034。</p>"
                           "<p>保留上游 GPLv3 许可证，仅供本地自用。</p>"
                           "<p>登录与购票请求由本机发送至 12306；支付由所选支付机构处理。</p>"

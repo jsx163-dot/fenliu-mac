@@ -18,6 +18,7 @@ MainWindow *w;
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    QGuiApplication::setApplicationDisplayName(_("分流购票app"));
 #ifdef LOCAL_CHECKS
     return runLocalChecks(argc, argv);
 #endif
@@ -44,7 +45,6 @@ int main(int argc, char *argv[])
 
     w = new MainWindow;
     w->setUp();
-    w->setWindowTitle(QObject::tr("分流云映 · 本地版 ") + QObject::tr(THISVERSION));
     w->setWindowIcon(QIcon(_(":/icon/images/ticket.ico")));
 
     QList<QScreen *> screen = QGuiApplication::screens();

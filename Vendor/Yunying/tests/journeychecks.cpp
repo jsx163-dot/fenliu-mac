@@ -9,6 +9,7 @@
 #include <QDateEdit>
 #include <QDoubleSpinBox>
 #include <QJsonDocument>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QNetworkAccessManager>
@@ -572,8 +573,11 @@ private slots:
     {
         QFETCH(int, mode);
         w = new MainWindow; w->setUp();
-        auto *tabs = qobject_cast<QTabWidget *>(w->centralWidget()); QVERIFY(tabs);
+        auto *tabs = w->findChild<QTabWidget *>("bookingViews"); QVERIFY(tabs);
         QCOMPARE(tabs->count(), 2); QCOMPARE(tabs->tabText(1), QStringLiteral("智能备选"));
+        QVERIFY(w->findChild<QFrame *>("supportBar"));
+        QCOMPARE(w->findChild<QLabel *>("applicationBrand")->text(), QStringLiteral("分流购票app"));
+        QVERIFY(w->windowTitle().startsWith(QStringLiteral("分流购票app")));
         w->setStationNameCompleter(stationFixture());
         NetHelper *nh = NetHelper::instance();
         auto *original = nh->nam;

@@ -5,7 +5,7 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 QT_BIN=${QT_BIN:-$(brew --prefix qtbase)/bin}
 QT_LIBS=$("$QT_BIN/qmake" -query QT_INSTALL_LIBS)
 BUILD_ROOT="$ROOT_DIR/.build-yunying"
-APP_DIR="$ROOT_DIR/dist/分流云映.app"
+APP_DIR="$ROOT_DIR/dist/分流购票app.app"
 SDK_PATH=$(xcrun --show-sdk-path)
 MIN_OS=$(sw_vers -productVersion | cut -d. -f1,2)
 

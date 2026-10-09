@@ -3,17 +3,25 @@
 #include "userdata.h"
 #include "credentialstore.h"
 #include "fakecredentialstore.h"
+#include "mainwindow.h"
+#include "supportbar.h"
+#include <QAbstractButton>
 #include <QApplication>
 #include <QDialog>
+#include <QDockWidget>
 #include <QFileInfo>
+#include <QFile>
 #include <QLabel>
+#include <QNetworkAccessManager>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QTabWidget>
 #include <QTest>
 #include <QTimer>
 int runJourneyChecks(int argc, char **argv);
 int runJourneyPreview();
+extern MainWindow *w;
 
 class MacChecks : public QObject {
     Q_OBJECT
@@ -111,6 +119,7 @@ private slots:
             QUrl("https://epay.12306.cn/pay/webBusiness"), {});
         QDialog *payment = parent.findChild<QDialog *>();
         QVERIFY(payment);
+        QCOMPARE(payment->windowTitle(), QStringLiteral("分流购票app · 支付"));
         QTRY_VERIFY(payment->isVisible());
         QVERIFY(payment->width() <= payment->screen()->availableGeometry().width());
         QTest::qWait(1500);
@@ -134,10 +143,86 @@ private slots:
         payment->close();
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     }
+
+    void supportSlotsAreLocalAndFit()
+    {
+        SupportBar bar;
+        auto *sponsor = bar.findChild<QWidget *>("sponsorSlot");
+        auto *advertisement = bar.findChild<QFrame *>("advertisingSlot");
+        QVERIFY(sponsor); QVERIFY(advertisement);
+        QCOMPARE(bar.findChild<QLabel *>("sponsorStatus")->text(), QStringLiteral("赞助信息待配置"));
+        QCOMPARE(bar.findChild<QLabel *>("advertisingBadge")->text(), QStringLiteral("广告"));
+        QVERIFY(bar.findChildren<QNetworkAccessManager *>().isEmpty());
+        QVERIFY(bar.findChildren<QAbstractButton *>().isEmpty());
+        for (const auto *label : bar.findChildren<QLabel *>()) {
+            QCOMPARE(label->textFormat(), Qt::PlainText);
+            QVERIFY(!label->openExternalLinks());
+        }
+        for (int width : {900, 600}) {
+            bar.resize(width, 96); bar.show(); QTest::qWait(20);
+            QCOMPARE(bar.width(), width); QCOMPARE(bar.height(), 96);
+            QVERIFY(bar.rect().contains(sponsor->geometry()));
+            QVERIFY(bar.rect().contains(advertisement->geometry()));
+            QVERIFY(!sponsor->geometry().intersects(advertisement->geometry()));
+            for (const auto *label : bar.findChildren<QLabel *>()) {
+                const QRect bounds(label->mapTo(&bar, QPoint(0, 0)), label->size());
+                QVERIFY(bar.rect().contains(bounds));
+                QVERIFY(label->height() >= label->heightForWidth(label->width()));
+            }
+        }
+    }
+
+    void supportFollowsBookingControls()
+    {
+        MainWindow window; w = &window; window.setUp();
+        window.resize(1200, 900); window.show(); QTest::qWait(30);
+        auto *controls = window.findChild<QDockWidget *>("bookingControlsDock");
+        auto *support = window.findChild<QDockWidget *>("supportDock");
+        auto *tabs = window.findChild<QTabWidget *>("bookingViews");
+        QVERIFY(controls); QVERIFY(support); QVERIFY(tabs);
+        QCOMPARE(support->features(), QDockWidget::NoDockWidgetFeatures);
+        for (int page : {0, 1}) {
+            tabs->setCurrentIndex(page); QTest::qWait(20);
+            QVERIFY(support->isVisible());
+            QVERIFY(support->geometry().top() >= controls->geometry().bottom());
+            QVERIFY(!support->geometry().intersects(controls->geometry()));
+            QVERIFY(window.rect().contains(support->geometry()));
+        }
+        window.close(); w = nullptr;
+    }
 };
+
+static int runSupportPreview()
+{
+    QCoreApplication::setOrganizationName(QStringLiteral("FenliuSupportPreview"));
+    QCoreApplication::setApplicationName(QStringLiteral("OfflinePreview"));
+    QStandardPaths::setTestModeEnabled(true);
+    QTemporaryDir settings;
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settings.path());
+    QFile qss(QStringLiteral(":/res/main.qss"));
+    if (qss.open(QFile::ReadOnly)) qApp->setStyleSheet(qss.readAll());
+    MainWindow window;
+    w = &window; window.setUp();
+    auto *tabs = window.findChild<QTabWidget *>("bookingViews");
+    window.resize(1200, 900); window.show();
+    QTimer::singleShot(250, &window, [&] {
+        window.grab().save("/tmp/fenliu-support-main.png");
+        tabs->setCurrentIndex(1);
+        QTimer::singleShot(100, &window, [&] {
+            window.grab().save("/tmp/fenliu-support-smart.png");
+            window.resize(1000, 760);
+            QTimer::singleShot(100, &window, [&] {
+                window.grab().save("/tmp/fenliu-support-compact.png"); qApp->quit();
+            });
+        });
+    });
+    const int result = qApp->exec(); w = nullptr; return result;
+}
 
 int runLocalChecks(int argc, char **argv)
 {
+    if (argc == 2 && QString::fromUtf8(argv[1]) == QStringLiteral("--support-preview")) return runSupportPreview();
     if (argc == 2 && QString::fromUtf8(argv[1]) == QStringLiteral("--journey-preview")) return runJourneyPreview();
     if (argc == 2 && QString::fromUtf8(argv[1]) == QStringLiteral("--payment-preview")) {
         QWidget parent;
