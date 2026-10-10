@@ -29,6 +29,7 @@ INCLUDEPATH += include
 # DEPENDPATH = .
 
 SOURCES += \
+    src/appstyle.cpp \
     src/supportbar.cpp \
     src/journey.cpp \
     src/journeygateway.cpp \
@@ -71,6 +72,7 @@ SOURCES += \
     lib/sm4/src/sm4.cpp
 
 HEADERS += \
+    include/appstyle.h \
     include/supportbar.h \
     include/journey.h \
     include/journeygateway.h \

@@ -1,6 +1,7 @@
 #include "doublelistwidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include "appstyle.h"
 
 DoubleListWidget::DoubleListWidget(QWidget *widget): QWidget(widget)
 {
@@ -20,38 +21,46 @@ DoubleListWidget::DoubleListWidget(QWidget *widget): QWidget(widget)
     QVBoxLayout *vLayout2 = new QVBoxLayout;
     vLayout2->addStretch();
     toRightButton = new QPushButton;
-    toRightButton->setIcon(QIcon(QStringLiteral(":/icon/images/arrow_right.png")));
+    toRightButton->setIcon(AppStyle::icon("arrow-right"));
     connect(toRightButton, &QPushButton::clicked, this, &DoubleListWidget::moveCurrentLeftItemToRight);
     toRightButton->setEnabled(false);
     vLayout2->addWidget(toRightButton);
 
     toLeftButton = new QPushButton;
-    toLeftButton->setIcon(QIcon(QStringLiteral(":/icon/images/arrow_left.png")));
+    toLeftButton->setIcon(AppStyle::icon("arrow-left"));
     connect(toLeftButton, &QPushButton::clicked, this, &DoubleListWidget::moveCurrentRightItemToLeft);
     toLeftButton->setEnabled(false);
     vLayout2->addWidget(toLeftButton);
     vLayout2->addStretch();
     upButton = new QPushButton;
-    upButton->setIcon(QIcon(QStringLiteral(":/icon/images/arrow_up.png")));
+    upButton->setIcon(AppStyle::icon("arrow-up"));
     connect(upButton, &QPushButton::clicked, this, &DoubleListWidget::moveRightItemUp);
     vLayout2->addWidget(upButton);
     downButton = new QPushButton;
-    downButton->setIcon(QIcon(QStringLiteral(":/icon/images/arrow_down.png")));
+    downButton->setIcon(AppStyle::icon("arrow-down"));
     connect(downButton, &QPushButton::clicked, this, &DoubleListWidget::moveRightItemDown);
     vLayout2->addWidget(downButton);
     vLayout2->addStretch();
 
     toRightButtonAll = new QPushButton;
-    toRightButtonAll->setIcon(QIcon(QStringLiteral(":/icon/images/double_arrow_right.png")));
+    toRightButtonAll->setIcon(AppStyle::icon("chevrons-right"));
     connect(toRightButtonAll, &QPushButton::clicked, this, &DoubleListWidget::moveCurrentLeftItemToRightAll);
     toRightButtonAll->setEnabled(false);
     vLayout2->addWidget(toRightButtonAll);
 
     toLeftButtonAll = new QPushButton;
-    toLeftButtonAll->setIcon(QIcon(QStringLiteral(":/icon/images/double_arrow_left.png")));
+    toLeftButtonAll->setIcon(AppStyle::icon("chevrons-left"));
     connect(toLeftButtonAll, &QPushButton::clicked, this, &DoubleListWidget::moveCurrentRightItemToLeftAll);
     toLeftButtonAll->setEnabled(false);
     vLayout2->addWidget(toLeftButtonAll);
+    const QList<QPushButton *> tools = {toRightButton, toLeftButton, upButton, downButton, toRightButtonAll, toLeftButtonAll};
+    const QStringList names = {tr("加入已选"), tr("移出已选"), tr("上移"), tr("下移"), tr("全部加入"), tr("全部移出")};
+    for (int i = 0; i < tools.size(); ++i) {
+        tools[i]->setProperty("role", "icon");
+        tools[i]->setFixedSize(34, 34);
+        tools[i]->setToolTip(names[i]);
+        tools[i]->setAccessibleName(names[i]);
+    }
 
 
     QVBoxLayout *vLayout3 = new QVBoxLayout;

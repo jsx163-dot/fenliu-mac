@@ -40,6 +40,7 @@
 #include "12306.h"
 #include "journeywidget.h"
 #include "supportbar.h"
+#include "appstyle.h"
 
 using namespace Qt;
 
@@ -51,13 +52,13 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    QHBoxLayout *hLayout;
-    QLabel *label;
-
     QWidget *widget = new QWidget(this);
-    hLayout = new QHBoxLayout;
-    //hLayout->setMargin(10);
-    hLayout->setSpacing(20);
+    widget->setObjectName("regularBookingView");
+    auto *route = new QGridLayout;
+    route->setHorizontalSpacing(12);
+    route->setVerticalSpacing(6);
+    route->setColumnStretch(0, 1);
+    route->setColumnStretch(2, 1);
 
     player = nullptr;
     stopMusicTimer = new QTimer;
@@ -65,55 +66,69 @@ MainWindow::MainWindow(QWidget *parent) :
         startOrStopPlayMusic();
     });
 
-    hLayout->addWidget(label = new QLabel(tr("出发站: ")));
-    label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    hLayout->addWidget(fromStationLe = new CompleteEdit);
+    route->addWidget(new QLabel(tr("出发站")), 0, 0);
+    fromStationLe = new CompleteEdit;
+    fromStationLe->setObjectName("regularFrom");
     fromStationLe->setPlaceholderText(_("简拼/全拼/汉字"));
-    fromStationLe->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-    fromStationLe->setMaximumWidth(120);
+    route->addWidget(fromStationLe, 1, 0);
     connect(fromStationLe, &CompleteEdit::editingFinished, this, &MainWindow::userStartStationChanged);
 
-    hLayout->addWidget(swapStationPb = new QPushButton);
-    swapStationPb->setIcon(QIcon(QStringLiteral(":/icon/images/swap.png")));
+    swapStationPb = new QPushButton(AppStyle::icon("arrow-right-left"), QString());
+    swapStationPb->setProperty("role", "icon");
+    swapStationPb->setFixedSize(34, 34);
+    swapStationPb->setToolTip(tr("交换出发站与到达站"));
+    swapStationPb->setAccessibleName(swapStationPb->toolTip());
+    route->addWidget(swapStationPb, 1, 1);
     connect(swapStationPb, &QPushButton::clicked, this, &MainWindow::swapStation);
 
-    hLayout->addWidget(label = new QLabel(tr("到达站: ")));
-    label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    hLayout->addWidget(toStationLe = new CompleteEdit);
+    route->addWidget(new QLabel(tr("到达站")), 0, 2);
+    toStationLe = new CompleteEdit;
+    toStationLe->setObjectName("regularTo");
     toStationLe->setPlaceholderText(_("简拼/全拼/汉字"));
-    toStationLe->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-    toStationLe->setMaximumWidth(120);
+    route->addWidget(toStationLe, 1, 2);
     connect(toStationLe, &CompleteEdit::editingFinished, this, &MainWindow::userEndStationChanged);
 
-    hLayout->addWidget(new QLabel(tr("日期: ")));
-    hLayout->addWidget(tourDateDe = new QDateEdit);
-    tourDateDe->setMinimumWidth(105);
+    route->addWidget(new QLabel(tr("出发日期")), 0, 3);
+    tourDateDe = new QDateEdit;
+    tourDateDe->setObjectName("regularDate");
+    tourDateDe->setDisplayFormat("yyyy-MM-dd");
+    tourDateDe->setFixedWidth(158);
+    route->addWidget(tourDateDe, 1, 3);
 
     tourDateDe->setCalendarPopup(true);
     connect(tourDateDe, &QDateEdit::dateChanged, this, &MainWindow::userTourDateChanged);
-    hLayout->addStretch();
-
-    hLayout->addWidget(queryTicketPb = new QPushButton);
+    queryTicketPb = new QPushButton(AppStyle::icon("search", Qt::white), QString());
+    queryTicketPb->setObjectName("regularQueryButton");
+    queryTicketPb->setProperty("role", "primary");
     queryTicketPb->setText(tr("查询"));
+    route->addWidget(queryTicketPb, 1, 4);
     connect(queryTicketPb, &QPushButton::clicked, this, &MainWindow::queryTicket);
-    hLayout->addWidget(switchTicketShowTypePb = new QPushButton);
+    switchTicketShowTypePb = new QPushButton(AppStyle::icon("ticket"), QString());
     switchTicketShowTypePb->setText(tr("显示票价"));
     connect(switchTicketShowTypePb, &QPushButton::clicked, this, &MainWindow::switchTicketShowType);
-    hLayout->addWidget(playMusicPb = new QPushButton);
+    playMusicPb = new QPushButton(AppStyle::icon("volume-2"), QString());
     playMusicPb->setText(tr("试听音乐"));
     connect(playMusicPb, &QPushButton::clicked, this, &MainWindow::startOrStopPlayMusic);
 
-    hLayout->addWidget(grabTicketPb = new QPushButton);
+    grabTicketPb = new QPushButton(AppStyle::icon("play"), QString());
     grabTicketPb->setText(tr("开始"));
+    route->addWidget(grabTicketPb, 1, 5);
     connect(grabTicketPb, &QPushButton::clicked, this, &MainWindow::startOrStopGrabTicket);
 
     QVBoxLayout *vLayout = new QVBoxLayout;
-    vLayout->addLayout(hLayout);
+    vLayout->setContentsMargins(20, 16, 20, 16);
+    vLayout->setSpacing(14);
+    vLayout->addLayout(route);
     setUpTableView();
-    QHBoxLayout *hLayout2 = new QHBoxLayout;
-    hLayout2->setSpacing(10);
-    hLayout2->addWidget(tableView);
-    vLayout->addLayout(hLayout2);
+    auto *tableTools = new QHBoxLayout;
+    auto *resultsTitle = new QLabel(tr("余票列表"));
+    resultsTitle->setProperty("muted", true);
+    tableTools->addWidget(resultsTitle);
+    tableTools->addStretch();
+    tableTools->addWidget(switchTicketShowTypePb);
+    tableTools->addWidget(playMusicPb);
+    vLayout->addLayout(tableTools);
+    vLayout->addWidget(tableView, 1);
 
     passengerDialog = new PassengerDialog(this);
     trainNoDialog = new TrainNoDialog(this);
@@ -182,19 +197,34 @@ MainWindow::MainWindow(QWidget *parent) :
     workspaceLayout->setContentsMargins(0, 0, 0, 0);
     workspaceLayout->setSpacing(0);
     auto *identity = new QWidget(workspace);
+    identity->setObjectName("applicationHeader");
     auto *identityLayout = new QHBoxLayout(identity);
-    identityLayout->setContentsMargins(14, 8, 14, 8);
+    identityLayout->setContentsMargins(20, 12, 20, 12);
+    identityLayout->setSpacing(10);
     auto *identityIcon = new QLabel(identity);
-    identityIcon->setPixmap(QIcon(_(":/icon/images/ticket.ico")).pixmap(24, 24));
+    identityIcon->setPixmap(AppStyle::icon("train-front", QColor("#315ed4")).pixmap(24, 24));
     identityIcon->setFixedSize(24, 24);
     identityLayout->addWidget(identityIcon);
     auto *name = new QLabel(tr("分流购票app"), identity);
     name->setObjectName("applicationBrand");
     name->setTextFormat(Qt::PlainText);
-    QFont nameFont = name->font(); nameFont.setBold(true); nameFont.setPointSize(14);
-    name->setFont(nameFont);
     identityLayout->addWidget(name);
+    auto *edition = new QLabel(tr("本地版"), identity);
+    edition->setObjectName("localEdition");
+    identityLayout->addWidget(edition);
     identityLayout->addStretch();
+    auto *saleButton = new QPushButton(AppStyle::icon("clock-3"), tr("起售查询"), identity);
+    connect(saleButton, &QPushButton::clicked, selltimeDialog, &SellTimeQueryDialog::show);
+    identityLayout->addWidget(saleButton);
+    identityLayout->addWidget(loginButton);
+    auto *settingsButton = new QPushButton(AppStyle::icon("settings-2"), QString(), identity);
+    settingsButton->setObjectName("settingsButton");
+    settingsButton->setProperty("role", "icon");
+    settingsButton->setFixedSize(34, 34);
+    settingsButton->setToolTip(tr("设置"));
+    settingsButton->setAccessibleName(settingsButton->toolTip());
+    connect(settingsButton, &QPushButton::clicked, settingDialog, &SettingDialog::show);
+    identityLayout->addWidget(settingsButton);
     workspaceLayout->addWidget(identity);
     workspaceLayout->addWidget(views, 1);
     setCentralWidget(workspace);
@@ -208,6 +238,10 @@ MainWindow::MainWindow(QWidget *parent) :
     supportDock->setWidget(new SupportBar(supportDock));
     addDockWidget(Qt::BottomDockWidgetArea, supportDock);
     splitDockWidget(findChild<QDockWidget *>("bookingControlsDock"), supportDock, Qt::Vertical);
+    auto *bookingControls = findChild<QDockWidget *>("bookingControlsDock");
+    connect(views, &QTabWidget::currentChanged, bookingControls, [bookingControls](int index) {
+        bookingControls->setVisible(index == 0);
+    });
     connect(NetHelper::instance(), &NetHelper::journeyPassengersChanged, journeyWidget, [this] {
         journeyWidget->setPassengerOptions(LocalJourneyGateway::passengerOptions());
     });
@@ -216,7 +250,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     statusBar()->showMessage(QStringLiteral("准备就绪"));
     setWindowTitle(tr("分流购票app · 本地版 ") + tr(THISVERSION));
-    resize(QSize(1200, 800));
+    setMinimumSize(960, 700);
+    resize(QSize(1200, 840));
 }
 
 void MainWindow::setUp()
@@ -238,10 +273,10 @@ void MainWindow::updateLoginButtonStatus(bool isLogin)
 
     if (isLogin) {
         connect(loginButton, &QPushButton::pressed, this, &MainWindow::logout);
-        loginButton->setText(_("点我注销"));
+        loginButton->setText(_("退出登录"));
     } else {
         connect(loginButton, &QPushButton::pressed, this, &MainWindow::showLoginDialog);
-        loginButton->setText(_("点我登陆"));
+        loginButton->setText(_("登录 12306"));
     }
 }
 
@@ -253,24 +288,34 @@ void MainWindow::updateLatencyChart(int d)
 void MainWindow::createDockWidget()
 {
     QWidget *widget = new QWidget;
+    widget->setObjectName("bookingControls");
     QDockWidget *dock = new QDockWidget;
     dock->setObjectName("bookingControlsDock");
-    dock->setFeatures(QDockWidget::DockWidgetMovable);
-    dock->setFeatures(QDockWidget::DockWidgetClosable);
+    dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    auto *title = new QWidget(dock);
+    title->setFixedHeight(0);
+    dock->setTitleBarWidget(title);
+    dock->setFixedHeight(164);
 
     addDockWidget(Qt::BottomDockWidgetArea, dock);
     dock->resize(dock->sizeHint());
 
     browser = new QTextBrowser;
-    browser->setTextColor(QColor(0, 139, 139));
+    browser->setObjectName("activityLog");
+    browser->setTextColor(QColor("#515b6d"));
     browser->setOpenExternalLinks(true);
 
     latencyChart = new LineChartView;
     latencyChart->legendHide();
 
-    //browser->setMinimumSize(QSize(200, 80));
     QHBoxLayout *layout = new QHBoxLayout;
+    layout->setContentsMargins(20, 12, 20, 12);
+    layout->setSpacing(24);
     QGridLayout *gLayout = new QGridLayout;
+    gLayout->setHorizontalSpacing(10);
+    gLayout->setVerticalSpacing(10);
+    gLayout->setColumnMinimumWidth(1, 58);
+    gLayout->setColumnMinimumWidth(3, 58);
     QPushButton *pb = new QPushButton;
     selectedPassengerTipsLabel = new QLabel(tr("已选0/0"));
     pb->setText(tr("选择乘车人"));
@@ -281,39 +326,41 @@ void MainWindow::createDockWidget()
     selectedTrainTipsLabel = new QLabel(tr("已选0/0"));
     pb->setText(tr("选择车次"));
     connect(pb, &QPushButton::clicked, trainNoDialog, &TrainNoDialog::show);
-    gLayout->addWidget(pb, 1, 0, 1, 1);
-    gLayout->addWidget(selectedTrainTipsLabel, 1, 1, 1, 1);
+    gLayout->addWidget(pb, 0, 2, 1, 1);
+    gLayout->addWidget(selectedTrainTipsLabel, 0, 3, 1, 1);
     pb = new QPushButton;
     selectedSeatTypeTipsLabel = new QLabel(tr("已选0/0"));
     pb->setText(tr("选择席别"));
     connect(pb, &QPushButton::clicked, seatTypeDialog, &SeatTypeDialog::show);
-    gLayout->addWidget(pb, 2, 0, 1, 1);
-    gLayout->addWidget(selectedSeatTypeTipsLabel, 2, 1, 1, 1);
+    gLayout->addWidget(pb, 1, 0, 1, 1);
+    gLayout->addWidget(selectedSeatTypeTipsLabel, 1, 1, 1, 1);
     pb = new QPushButton;
     selectedSeatTipsLabel = new QLabel(tr("已选0/0"));
     pb->setText(tr("选座/铺"));
     connect(pb, &QPushButton::clicked, seatDialog, &SeatDialog::show);
-    gLayout->addWidget(pb, 3, 0, 1, 1);
-    gLayout->addWidget(selectedSeatTipsLabel, 3, 1, 1, 1);
+    gLayout->addWidget(pb, 1, 2, 1, 1);
+    gLayout->addWidget(selectedSeatTipsLabel, 1, 3, 1, 1);
+    for (auto *count : {selectedPassengerTipsLabel, selectedTrainTipsLabel, selectedSeatTypeTipsLabel, selectedSeatTipsLabel})
+        count->setProperty("muted", true);
+    auto *preferences = new QVBoxLayout;
+    auto *preferencesTitle = new QLabel(tr("抢票偏好"));
+    preferencesTitle->setProperty("muted", true);
+    preferences->addWidget(preferencesTitle);
+    preferences->addLayout(gLayout);
+    preferences->addStretch();
 
-    QVBoxLayout *rightLayout = new QVBoxLayout;
-    pb = new QPushButton(tr("起售查询"));
-    connect(pb, &QPushButton::clicked, selltimeDialog, &SellTimeQueryDialog::show);
-    rightLayout->addWidget(pb);
-    loginButton = new QPushButton(tr("点我登陆"));
+    loginButton = new QPushButton(AppStyle::icon("user-round"), tr("登录 12306"));
+    loginButton->setObjectName("accountButton");
     connect(loginButton, &QPushButton::pressed, this, &MainWindow::showLoginDialog);
-    rightLayout->addWidget(loginButton);
 
     settingDialog = new SettingDialog(this);
     settingDialog->setUp();
-    pb = new QPushButton(tr("设置"));
-    connect(pb, &QPushButton::clicked, settingDialog, &SettingDialog::show);
-    rightLayout->addWidget(pb);
-
-    layout->addLayout(gLayout);
-    layout->addWidget(browser);
-    layout->addWidget(latencyChart);
-    layout->addLayout(rightLayout);
+    auto *activity = new QTabWidget(widget);
+    activity->setObjectName("activityViews");
+    activity->addTab(browser, tr("运行记录"));
+    activity->addTab(latencyChart, tr("网络时延"));
+    layout->addLayout(preferences);
+    layout->addWidget(activity, 1);
     widget->setLayout(layout);
     dock->setWidget(widget);
 }
@@ -322,7 +369,7 @@ void MainWindow::createHistoryInfoDialog()
 {
     historyInfoDialog = new QDialog(this);
     historyInfoBrower = new QTextBrowser;
-    historyInfoBrower->setTextColor(QColor(0, 139, 139));
+    historyInfoBrower->setTextColor(QColor("#515b6d"));
     historyInfoBrower->setOpenExternalLinks(true);
     QVBoxLayout *vlayout = new QVBoxLayout;
     vlayout->addWidget(historyInfoBrower);
@@ -539,10 +586,10 @@ void MainWindow::logoutSuccess()
 
 void MainWindow::setRemainTicketColor(QString &remain, QStandardItemModel *model, const QModelIndex &index, bool canCandidate)
 {
-    const static QBrush green = QBrush(QColor(144, 238, 144));
-    const static QBrush gray = QBrush(QColor(190, 190, 190));
-    const static QBrush orange = QBrush(QColor(238, 154, 73));
-    const static QBrush black = QBrush(QColor(00, 00, 00));
+    const static QBrush green = QBrush(QColor("#28785f"));
+    const static QBrush gray = QBrush(QColor("#8d96a5"));
+    const static QBrush orange = QBrush(QColor("#996b18"));
+    const static QBrush black = QBrush(QColor("#232a36"));
 
     if (remain.isEmpty())
         return;
@@ -609,10 +656,10 @@ void MainWindow::updateTableView(QVector<QStringList> allTrain, QVariantMap stat
     QString tourDate = uc.tourDate;
 
     itemIdx = 0;
-    const QBrush blue = QBrush(QColor(99, 184, 255));
-    const QBrush violetRed = QBrush(QColor(205, 104, 137));
-    const QBrush slateGray = QBrush(QColor(122, 139, 139));
-    const QBrush orange = QBrush(QColor(238, 118, 33));
+    const QBrush blue = QBrush(QColor("#315ed4"));
+    const QBrush violetRed = QBrush(QColor("#a74967"));
+    const QBrush slateGray = QBrush(QColor("#69758a"));
+    const QBrush orange = QBrush(QColor("#996b18"));
     QVector<int> tableSeatIndexVec(128, 0);
     QVector<QStringList> invalidTrain;
     QString fromStationName, toStationName;
@@ -1131,13 +1178,6 @@ void MainWindow::setStationNameCompleter(const QByteArray &nameText)
     ic->setStationData(nameText);
     ic->setCaseSensitivity((Qt::CaseInsensitive));
     fromStationLe->setCompleter(ic);
-    ic->popup()->setStyleSheet("background-color: #F5F5F5;\
-                               color: #000000;\
-                               border: 1px solid #BEBEBE;\
-                               border-radius: 5px;\
-                               padding: 2px 2px 2px 2px;\
-                               min-width: 8px;\
-                               font: 13px \"Arial\";");
     if (!uc.staFromName.isEmpty() && uc.staFromCode.isEmpty()) {
         uc.staFromCode = ud->getStaCode()->value(uc.staFromName);
     }
@@ -1146,13 +1186,6 @@ void MainWindow::setStationNameCompleter(const QByteArray &nameText)
     *ic2 = *ic;
     ic2->setCaseSensitivity((Qt::CaseInsensitive));
     toStationLe->setCompleter(ic2);
-    ic2->popup()->setStyleSheet("background-color: #F5F5F5;\
-                               color: #000000;\
-                               border: 1px solid #BEBEBE;\
-                               border-radius: 5px;\
-                               padding: 2px 2px 2px 2px;\
-                               min-width: 8px;\
-                               font: 13px \"Arial\";");
     if (!uc.staToName.isEmpty() && uc.staToCode.isEmpty()) {
         uc.staToCode = ud->getStaCode()->value(uc.staToName);
     }
@@ -1160,13 +1193,6 @@ void MainWindow::setStationNameCompleter(const QByteArray &nameText)
     *ic3 = *ic;
     ic3->setCaseSensitivity((Qt::CaseInsensitive));
     selltimeDialog->setCompleter(ic3);
-    ic3->popup()->setStyleSheet("background-color: #F5F5F5;\
-                                color: #000000;\
-                                border: 1px solid #BEBEBE;\
-                                border-radius: 5px;\
-                                padding: 2px 2px 2px 2px;\
-                                min-width: 8px;\
-                                font: 13px \"Arial\";");
 }
 
 bool MainWindow::hasStationNameCompleter()
@@ -1331,6 +1357,7 @@ void MainWindow::enterGrabMode()
     ud->setRunStatus(EGRABTICKET);
     ud->candidateRunStatus = EGRABCANDIDATETICKET;
     grabTicketPb->setText(tr("停止"));
+    grabTicketPb->setIcon(AppStyle::icon("square"));
     fromStationLe->setEnabled(false);
     toStationLe->setEnabled(false);
     swapStationPb->setEnabled(false);
@@ -1379,6 +1406,7 @@ void MainWindow::exitGrabMode()
     ud->candidateRunStatus = EIDLE;
     grabTicketPb->setText(tr("开始"));
     fromStationLe->setEnabled(true);
+    grabTicketPb->setIcon(AppStyle::icon("play"));
     toStationLe->setEnabled(true);
     swapStationPb->setEnabled(true);
     tourDateDe->setEnabled(true);
@@ -1424,6 +1452,7 @@ void MainWindow::prepareGrabTicket(bool status)
                     formatOutput(_("刷票模式已自动切换为定时抢票模式"));
                 }
                 grabTicketPb->setText(tr("停止"));
+                grabTicketPb->setIcon(AppStyle::icon("square"));
                 return;
             }
         }
@@ -1437,6 +1466,7 @@ void MainWindow::prepareGrabTicket(bool status)
         if (fixedTimeGrabTimer->isActive()) {
             fixedTimeGrabTimer->stop();
             grabTicketPb->setText(tr("开始"));
+            grabTicketPb->setIcon(AppStyle::icon("play"));
             return;
         }
         exitGrabMode();
@@ -1859,8 +1889,11 @@ void MainWindow::createRightMenu()
 void MainWindow::setUpTableView()
 {
     tableView = new QTableView;
+    tableView->setObjectName("regularResults");
+    tableView->setAlternatingRowColors(true);
+    tableView->setShowGrid(false);
     QStandardItemModel *model = new QStandardItemModel;
-    tableView->verticalHeader()->setDefaultSectionSize(20);
+    tableView->verticalHeader()->setDefaultSectionSize(38);
     tableView->resize(tableView->sizeHint());
     //QCheckBox *checkBoxAll = new QCheckBox;
     //tableView->setCornerWidget(checkBoxAll);
@@ -1886,7 +1919,10 @@ void MainWindow::setUpTableView()
     tableView->verticalHeader()->hide();
     tableView->setContextMenuPolicy(Qt::CustomContextMenu);  //少这句，右键没有任何反应的。
     //列宽随窗口大小改变而改变，每列平均分配，充满整个表，但是此时列宽不能拖动进行改变
-    tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+    tableView->horizontalHeader()->setMinimumSectionSize(72);
+    tableView->horizontalHeader()->setDefaultSectionSize(88);
+    tableView->horizontalHeader()->setStretchLastSection(true);
     createRightMenu();  //创建一个右键菜单
     connect(tableView, &QTableView::customContextMenuRequested, this, [&] {
         if (tableView->model()->rowCount()) {
@@ -1933,21 +1969,21 @@ void MainWindow::updateNetQualityStatus(int ms)
             if (status != lastStatus) {
                 lastStatus = status;
                 pixmap.load(_(":/icon/images/perfect.png"));
-                netQualityIndicateLabel->setPixmap(pixmap);
+                netQualityIndicateLabel->setPixmap(pixmap.scaled(8, 8, Qt::KeepAspectRatio, Qt::SmoothTransformation));
             }
             netQualityIndicateDescLabel->setText(_("%1ms 非常好").arg(ms));
         } else if (ms < 500) {
             status = 1;
             if (status != lastStatus) {
                 pixmap.load(_(":/icon/images/good.png"));
-                netQualityIndicateLabel->setPixmap(pixmap);
+                netQualityIndicateLabel->setPixmap(pixmap.scaled(8, 8, Qt::KeepAspectRatio, Qt::SmoothTransformation));
             }
             netQualityIndicateDescLabel->setText(_("%1ms 良好").arg(ms));
         } else if (ms < 1000) {
             status = 2;
             if (status != lastStatus) {
                 pixmap.load(_(":/icon/images/good.png"));
-                netQualityIndicateLabel->setPixmap(pixmap);
+                netQualityIndicateLabel->setPixmap(pixmap.scaled(8, 8, Qt::KeepAspectRatio, Qt::SmoothTransformation));
             }
             netQualityIndicateDescLabel->setText(_("%1ms 差").arg(ms));
         } else {
@@ -1961,7 +1997,7 @@ void MainWindow::updateNetQualityStatus(int ms)
             if (status != lastStatus) {
                 lastStatus = status;
                 pixmap.load(_(":/icon/images/bad.png"));
-                netQualityIndicateLabel->setPixmap(pixmap);
+                netQualityIndicateLabel->setPixmap(pixmap.scaled(8, 8, Qt::KeepAspectRatio, Qt::SmoothTransformation));
 
             }
         }
@@ -1971,7 +2007,7 @@ void MainWindow::updateNetQualityStatus(int ms)
         if (status != lastStatus) {
             lastStatus = status;
             pixmap.load(_(":/icon/images/bad.png"));
-            netQualityIndicateLabel->setPixmap(pixmap);
+            netQualityIndicateLabel->setPixmap(pixmap.scaled(8, 8, Qt::KeepAspectRatio, Qt::SmoothTransformation));
             netQualityIndicateDescLabel->setText(tr("中断"));
         }
     }
@@ -2015,12 +2051,14 @@ void MainWindow::initStatusBars()
 #endif
 
     nextRequestProgress = new QProgressBar;
-    nextRequestProgress->setMaximumSize(100, 20);
+    nextRequestProgress->setTextVisible(false);
+    nextRequestProgress->setFixedSize(90, 6);
     statusBar()->addPermanentWidget(nextRequestProgress);
 
     netQualityIndicateLabel = new QLabel;
     pixmap.load(_(":/icon/images/perfect.png"));
-    netQualityIndicateLabel->setPixmap(pixmap);
+    netQualityIndicateLabel->setPixmap(pixmap.scaled(8, 8, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    netQualityIndicateLabel->setFixedSize(12, 12);
     statusBar()->addPermanentWidget(netQualityIndicateLabel);
 
     netQualityIndicateDescLabel = new QLabel;

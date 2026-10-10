@@ -4,6 +4,7 @@
 #include <QPainter>
 #include <QStyledItemDelegate>
 #include <QStyleOptionViewItem>
+#include <QApplication>
 #include <userdata.h>
 
 #define _ QStringLiteral
@@ -34,17 +35,28 @@ public:
         bool isDong = false;
         bool isStart = false, isEnd = false;
         bool handled = false;
-        bool trunc = false;
         int type = 0;
-        int width, textWidth;
+        int width;
         int spendDays;
         QString text;
         QRect rect;
-        QPen pen(QColor(99, 184, 255), 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
-        QFont font(_("宋体"), QFont::Black);
+        QPen pen(QColor("#315ed4"), 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        QFont font = opt.font;
+        const bool selected = option.state & QStyle::State_Selected;
 
-        if (option.state & QStyle::State_Selected) {
-            pen.setColor(Qt::white);
+        if (selected) {
+            pen.setColor(opt.palette.color(QPalette::HighlightedText));
+        }
+        if (index.column() == EFROMSTATIONCOL || index.column() == ETOSTATIONCOL
+            || index.column() == EARRIVETIMECOL || index.column() == EOTHERCOL) {
+            QStyleOptionViewItem background = opt;
+            background.text.clear();
+            background.icon = QIcon();
+            background.features &= ~(QStyleOptionViewItem::HasDisplay | QStyleOptionViewItem::HasDecoration);
+            const QStyle *style = opt.widget ? opt.widget->style() : QApplication::style();
+            painter->save();
+            style->drawControl(QStyle::CE_ItemViewItem, &background, painter, opt.widget);
+            painter->restore();
         }
 
         switch (index.column()) {
@@ -57,29 +69,18 @@ public:
             painter->setRenderHints(QPainter::SmoothPixmapTransform);  //平滑像素图变换
             rect.setWidth(16);
             rect.setHeight(16);
+            rect.moveTop(option.rect.top() + (option.rect.height() - 16) / 2);
             if (isStart) {
                 painter->drawPixmap(rect, start);
             } else {
                 painter->drawPixmap(rect, pass);
             }
             painter->setPen(pen);
-            font.setPointSize(9);
-            font.setBold(true);
             painter->setFont(font);
-            width = option.rect.width() - 16;
-            textWidth = text.size() << 4;
-            while (!text.isEmpty() && width < textWidth) {
-                text.truncate(text.size() - 1);
-                textWidth -= 16;
-                trunc = true;
-            }
-            if (trunc) {
-                text += _("..");
-            }
-            rect = painter->boundingRect(rect.right() + 1, rect.y(),
-                                         width,
-                                         option.rect.height(), Qt::AlignCenter, text);
-            painter->drawText(rect, text);
+            width = qMax(0, option.rect.width() - 24);
+            text = QFontMetrics(font).elidedText(text, Qt::ElideRight, width);
+            rect = option.rect.adjusted(22, 0, -2, 0);
+            painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter, text);
             painter->restore();
             break;
         case ETOSTATIONCOL:
@@ -91,30 +92,18 @@ public:
             painter->setRenderHints(QPainter::SmoothPixmapTransform);  //平滑像素图变换
             rect.setWidth(16);
             rect.setHeight(16);
+            rect.moveTop(option.rect.top() + (option.rect.height() - 16) / 2);
             if (isEnd) {
                 painter->drawPixmap(rect, end);
             } else {
                 painter->drawPixmap(rect, pass);
             }
             painter->setPen(pen);
-            font.setPointSize(9);
-            font.setBold(true);
             painter->setFont(font);
-            width = option.rect.width() - 16;
-            textWidth = text.size() << 4;
-            while (!text.isEmpty() && width < textWidth) {
-                text.truncate(text.size() - 1);
-                textWidth -= 16;
-                trunc = true;
-            }
-            if (trunc) {
-                text += _("..");
-            }
-            rect = painter->boundingRect(rect.right() + 1, rect.y(),
-                                         width,
-                                         option.rect.height(), Qt::AlignCenter, text);
-
-            painter->drawText(rect, text);
+            width = qMax(0, option.rect.width() - 24);
+            text = QFontMetrics(font).elidedText(text, Qt::ElideRight, width);
+            rect = option.rect.adjusted(22, 0, -2, 0);
+            painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter, text);
             painter->restore();
             break;
         case EARRIVETIMECOL:
@@ -122,8 +111,8 @@ public:
             painter->save();
             painter->setRenderHint(QPainter::Antialiasing);
             painter->setRenderHints(QPainter::SmoothPixmapTransform);
-            if (pen.color() != Qt::white) {
-                pen.setColor(QColor(205, 104, 137));
+            if (!selected) {
+                pen.setColor(QColor("#a74967"));
             }
             painter->setPen(pen);
             rect = painter->boundingRect(option.rect.x(), option.rect.y(),
@@ -133,11 +122,11 @@ public:
 
             spendDays = index.data(Qt::UserRole).toInt();
             if (spendDays > 0) {
-                font.setPointSize(7);
+                font.setPixelSize(10);
                 painter->setFont(font);
                 text = _("+%1").arg(spendDays);
                 rect = painter->boundingRect(option.rect.x() + option.rect.width() - 18,
-                                             option.rect.y() - 5,
+                                             option.rect.y() + 2,
                                              20,
                                              20,
                                              Qt::AlignCenter,
@@ -155,9 +144,9 @@ public:
                 painter->save();
                 rect = option.rect;
                 rect.setLeft(rect.left());
-                rect.setTopLeft(QPoint(rect.x(), rect.y() + 2));
+                rect.setTopLeft(QPoint(rect.x(), rect.y() + (option.rect.height() - 16) / 2));
                 rect.setWidth(16);
-                rect.setHeight(option.rect.height() - 4);
+                rect.setHeight(16);
                 painter->setRenderHint(QPainter::Antialiasing);  //抗锯齿
                 painter->setRenderHints(QPainter::SmoothPixmapTransform);  //平滑像素图变换
                 painter->drawPixmap(rect, fu);
@@ -172,9 +161,9 @@ public:
                 left += rect.left();
                 left += l1[isFu];
                 rect.setLeft(left);
-                rect.setTopLeft(QPoint(rect.x(), rect.y() + 2));
+                rect.setTopLeft(QPoint(rect.x(), rect.y() + (option.rect.height() - 16) / 2));
                 rect.setWidth(16);
-                rect.setHeight(option.rect.height() - 4);
+                rect.setHeight(16);
                 painter->setRenderHint(QPainter::Antialiasing);  //抗锯齿
                 painter->setRenderHints(QPainter::SmoothPixmapTransform);  //平滑像素图变换
                 painter->drawPixmap(rect, zi);
@@ -191,9 +180,9 @@ public:
                 left += l1[isFu];
                 left += l2[isZi];
                 rect.setLeft(left);
-                rect.setTopLeft(QPoint(rect.x(), rect.y() + 2));
+                rect.setTopLeft(QPoint(rect.x(), rect.y() + (option.rect.height() - 16) / 2));
                 rect.setWidth(16);
-                rect.setHeight(option.rect.height() - 4);
+                rect.setHeight(16);
                 painter->setRenderHint(QPainter::Antialiasing);  //抗锯齿
                 painter->setRenderHints(QPainter::SmoothPixmapTransform);  //平滑像素图变换
                 painter->drawPixmap(rect, dong);

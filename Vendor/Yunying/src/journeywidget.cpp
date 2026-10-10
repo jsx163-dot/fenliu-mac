@@ -1,6 +1,7 @@
 #include "journeywidget.h"
 #include "analysis.h"
 #include "userdata.h"
+#include "appstyle.h"
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCompleter>
@@ -25,7 +26,7 @@
 static QListWidget *checkList(QWidget *parent)
 {
     auto *list = new QListWidget(parent);
-    list->setMaximumHeight(115);
+    list->setFixedHeight(78);
     list->setSelectionMode(QAbstractItemView::NoSelection);
     return list;
 }
@@ -50,15 +51,26 @@ JourneyWidget::JourneyWidget(QWidget *parent, JourneyGateway *network) : QWidget
     search = new JourneySearch(gateway, this);
     booking = new JourneyBooking(gateway, this);
     auto *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(20, 16, 20, 16);
+    layout->setSpacing(12);
     auto *form = new QWidget(this);
+    form->setObjectName("journeyForm");
     auto *grid = new QGridLayout(form);
+    grid->setContentsMargins(0, 0, 8, 0);
+    grid->setHorizontalSpacing(16);
+    grid->setVerticalSpacing(10);
     grid->setColumnStretch(1, 1); grid->setColumnStretch(3, 1);
     fromMode = new QComboBox; toMode = new QComboBox;
-    for (auto *mode : {fromMode, toMode}) mode->addItems({tr("城市"), tr("指定站点")});
+    for (auto *mode : {fromMode, toMode}) {
+        mode->addItems({tr("城市"), tr("指定站点")});
+        mode->setFixedWidth(110);
+    }
     from = new QLineEdit; to = new QLineEdit;
+    from->setPlaceholderText(tr("出发城市或车站")); to->setPlaceholderText(tr("到达城市或车站"));
     from->setObjectName("journeyFrom"); to->setObjectName("journeyTo");
     auto *fromRow = new QHBoxLayout; fromRow->addWidget(fromMode); fromRow->addWidget(from);
     auto *toRow = new QHBoxLayout; toRow->addWidget(toMode); toRow->addWidget(to);
+    fromRow->setSpacing(8); toRow->setSpacing(8);
     grid->addWidget(new QLabel(tr("出发地")), 0, 0); grid->addLayout(fromRow, 0, 1);
     grid->addWidget(new QLabel(tr("目的地")), 0, 2); grid->addLayout(toRow, 0, 3);
     fromStations = checkList(this); toStations = checkList(this);
@@ -80,31 +92,41 @@ JourneyWidget::JourneyWidget(QWidget *parent, JourneyGateway *network) : QWidget
     auto *timeRow = new QHBoxLayout;
     timeLimit = new QCheckBox(tr("出发时间"));
     earliest = new QTimeEdit(QTime(0, 0)); latest = new QTimeEdit(QTime(23, 59));
+    earliest->setFixedWidth(108); latest->setFixedWidth(108);
     earliest->setDisplayFormat("HH:mm"); latest->setDisplayFormat("HH:mm");
     earliest->setEnabled(false); latest->setEnabled(false);
     timeRow->addWidget(timeLimit); timeRow->addWidget(earliest); timeRow->addWidget(new QLabel(tr("至"))); timeRow->addWidget(latest);
+    timeRow->addStretch();
     split = new QCheckBox(tr("允许同车拆两段")); split->setChecked(true);
     grid->addLayout(timeRow, 4, 0, 1, 2); grid->addWidget(split, 4, 2, 1, 2);
     auto *scroll = new QScrollArea; scroll->setWidgetResizable(true); scroll->setWidget(form);
-    scroll->setFrameShape(QFrame::NoFrame); scroll->setMinimumHeight(200); scroll->setMaximumHeight(360);
+    scroll->setObjectName("journeyFormScroll");
+    scroll->setFrameShape(QFrame::NoFrame); scroll->setMinimumHeight(180); scroll->setMaximumHeight(328);
     layout->addWidget(scroll);
     auto *commands = new QHBoxLayout;
-    auto button = [&](const QString &text, QStyle::StandardPixmap icon) {
-        auto *b = new QPushButton(style()->standardIcon(icon), text); b->setToolTip(text); commands->addWidget(b); return b;
+    auto button = [&](const QString &text, const QString &icon) {
+        auto *b = new QPushButton(AppStyle::icon(icon), text); b->setToolTip(text); commands->addWidget(b); return b;
     };
-    searchButton = button(tr("搜索备选"), QStyle::SP_FileDialogContentsView);
+    searchButton = button(tr("搜索备选"), "search");
+    searchButton->setIcon(AppStyle::icon("search", Qt::white));
+    searchButton->setProperty("role", "primary");
     searchButton->setObjectName("journeySearchButton");
-    stopButton = button(tr("停止"), QStyle::SP_BrowserStop);
-    buyButton = button(tr("确认并下单"), QStyle::SP_DialogApplyButton);
+    stopButton = button(tr("停止"), "square");
+    buyButton = button(tr("确认并下单"), "check");
+    buyButton->setProperty("role", "accent");
     commands->addStretch();
     progress = new QLabel(tr("准备就绪")); progress->setWordWrap(true); commands->addWidget(progress, 2);
+    progress->setProperty("muted", true);
     layout->addLayout(commands);
     table = new QTableWidget(0, 8); table->setObjectName("journeyPlans");
+    table->setAlternatingRowColors(true); table->setShowGrid(false);
+    table->setMinimumHeight(130);
     table->setHorizontalHeaderLabels({tr("方案"), tr("实际站点"), tr("车次 / 席别"), tr("出发"), tr("到达"),
                                      tr("总价"), tr("最少余票"), tr("换铺 / 查询时间")});
     table->setSelectionBehavior(QAbstractItemView::SelectRows); table->setSelectionMode(QAbstractItemView::SingleSelection);
     table->setEditTriggers(QAbstractItemView::NoEditTriggers); table->verticalHeader()->hide();
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+    table->verticalHeader()->setMinimumSectionSize(42);
     for (int col = 0; col < 8; ++col) table->setColumnWidth(col, col == 1 ? 190 : col == 2 ? 150 : 115);
     table->horizontalHeader()->setStretchLastSection(true);
     layout->addWidget(table, 1);
@@ -112,9 +134,9 @@ JourneyWidget::JourneyWidget(QWidget *parent, JourneyGateway *network) : QWidget
     orderStatus->setTextFormat(Qt::PlainText); progress->setTextFormat(Qt::PlainText);
     layout->addWidget(orderStatus);
     auto *orderCommands = new QHBoxLayout;
-    reconcileButton = new QPushButton(style()->standardIcon(QStyle::SP_BrowserReload), tr("核实订单并继续"));
-    payButton = new QPushButton(style()->standardIcon(QStyle::SP_DialogOpenButton), tr("支付本段订单"));
-    newQuoteButton = new QPushButton(style()->standardIcon(QStyle::SP_DialogApplyButton), tr("重新确认余程"));
+    reconcileButton = new QPushButton(AppStyle::icon("refresh-cw"), tr("核实订单并继续"));
+    payButton = new QPushButton(AppStyle::icon("credit-card"), tr("支付本段订单"));
+    newQuoteButton = new QPushButton(AppStyle::icon("check"), tr("重新确认余程"));
     resetButton = new QPushButton(tr("结束已核实任务"));
     for (auto *b : {reconcileButton, payButton, newQuoteButton, resetButton}) { b->setToolTip(b->text()); orderCommands->addWidget(b); }
     orderCommands->addStretch(); layout->addLayout(orderCommands);
@@ -340,6 +362,7 @@ void JourneyWidget::renderBooking()
         if (!booking->orderId().isEmpty()) text += tr("\n本段订单：%1").arg(booking->orderId());
     }
     orderStatus->setText(text);
+    orderStatus->setVisible(!text.isEmpty());
     const bool busy = booking->state() == JourneyBooking::Submitting || booking->state() == JourneyBooking::Rechecking
                       || booking->state() == JourneyBooking::Reconciling;
     reconcileButton->setEnabled(booking->hasTask() && !busy && booking->state() != JourneyBooking::Complete);

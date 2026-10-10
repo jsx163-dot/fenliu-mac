@@ -37,6 +37,7 @@ mkdir -p FenliuYunying.app/Contents/Resources/Notices
 cp "$ROOT_DIR/Vendor/Yunying/LICENSE" FenliuYunying.app/Contents/Resources/Notices/Yunying-GPLv3.txt
 cp "$ROOT_DIR/Vendor/Yunying/lib/qt-notify/LICENSE" FenliuYunying.app/Contents/Resources/Notices/qt-notify-LICENSE.txt
 cp "$ROOT_DIR/Vendor/Yunying/ORIGIN.md" FenliuYunying.app/Contents/Resources/Notices/ORIGIN.md
+cp "$ROOT_DIR/Vendor/Yunying/images/ui/LICENSE" FenliuYunying.app/Contents/Resources/Notices/Lucide-LICENSE.txt
 codesign --force --deep --sign - FenliuYunying.app
 codesign --verify --deep --strict FenliuYunying.app
 

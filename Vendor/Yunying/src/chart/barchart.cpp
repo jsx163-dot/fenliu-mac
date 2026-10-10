@@ -24,6 +24,10 @@ BarChartView::BarChartView(QWidget *parent) : QDialog(parent)
         series->append(dataSet[i]);
     }
     chart = new QChart;
+    chart->setBackgroundBrush(QColor("#ffffff"));
+    chart->setBackgroundRoundness(0);
+    const QStringList colors = {"#315ed4", "#b43f46", "#28785f", "#a07c28", "#8381b5", "#6d7d94"};
+    for (int i = 0; i < dataSet.size(); ++i) dataSet[i]->setColor(QColor(colors[i]));
     chart->addSeries(series);
     chart->setTitle(_("异常统计"));
     chart->setAnimationOptions(QChart::SeriesAnimations);
@@ -64,6 +68,12 @@ BarChartView::BarChartView(QWidget *parent) : QDialog(parent)
 
     chart->legend()->setVisible(true);
     chart->legend()->setAlignment(Qt::AlignBottom);
+    chart->legend()->setLabelColor(QColor("#737d8d"));
+    for (auto *axis : chart->axes()) {
+        axis->setLabelsColor(QColor("#737d8d"));
+        axis->setTitleBrush(QColor("#515b6d"));
+        axis->setLinePenColor(QColor("#dce1e8"));
+    }
 
     view = new QChartView(chart);
     view->setRenderHint(QPainter::Antialiasing);

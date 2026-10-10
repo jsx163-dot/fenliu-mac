@@ -13,6 +13,7 @@
 #include <QSettings>
 #include <QSpinBox>
 #include <QRadioButton>
+#include <QScrollArea>
 #include <QLineEdit>
 #include <QButtonGroup>
 #include <QTimer>
@@ -446,7 +447,7 @@ void SettingDialog::grabTicketSetting(QTabWidget *tab)
     hlayout1->addLayout(vlayout1);
     hlayout1->addStretch();
     vlayout->addLayout(hlayout1);
-    vlayout->addStretch();
+    vlayout->addSpacing(16);
 
     QButtonGroup *btnGroup = new QButtonGroup;
     QGroupBox *gbox = new QGroupBox(tr("刷票模式"));
@@ -594,6 +595,7 @@ void SettingDialog::grabTicketSetting(QTabWidget *tab)
     vlayout1->addLayout(hlayout1);
     gbox->setLayout(vlayout1);
     vlayout->addWidget(gbox);
+    vlayout->addStretch();
     widget->setLayout(vlayout);
     tab->addTab(widget, tr("抢票设置"));
 }
@@ -1504,7 +1506,10 @@ void SettingDialog::paySetting(QTabWidget *tab)
 
 void SettingDialog::setUp()
 {
+    setObjectName("settingsDialog");
+    setWindowTitle(tr("分流购票app · 设置"));
     QTabWidget *tabWidget = new QTabWidget;
+    tabWidget->setObjectName("settingsViews");
     QVBoxLayout *vLayout = new QVBoxLayout;
 
     commonSetting(tabWidget);
@@ -1514,9 +1519,20 @@ void SettingDialog::setUp()
     notifySetting(tabWidget);
     wxNotifySetting(tabWidget);
 
+    for (int i = 0; i < tabWidget->count(); ++i) {
+        QWidget *page = tabWidget->widget(i);
+        const QString title = tabWidget->tabText(i);
+        tabWidget->removeTab(i);
+        auto *scroll = new QScrollArea(tabWidget);
+        scroll->setWidgetResizable(true);
+        scroll->setWidget(page);
+        tabWidget->insertTab(i, scroll, title);
+    }
+    tabWidget->setCurrentIndex(0);
+
     vLayout->addWidget(tabWidget);
     setLayout(vLayout);
-    //settingDialog->resize(800, 600);
+    resize(960, 700);
     //dialog->exec();
 }
 

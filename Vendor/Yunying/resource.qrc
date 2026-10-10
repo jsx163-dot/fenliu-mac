@@ -1,4 +1,29 @@
 <RCC>
+    <qresource prefix="/ui/icons">
+        <file alias="train-front.svg">images/ui/train-front.svg</file>
+        <file alias="arrow-right-left.svg">images/ui/arrow-right-left.svg</file>
+        <file alias="search.svg">images/ui/search.svg</file>
+        <file alias="play.svg">images/ui/play.svg</file>
+        <file alias="square.svg">images/ui/square.svg</file>
+        <file alias="volume-2.svg">images/ui/volume-2.svg</file>
+        <file alias="settings-2.svg">images/ui/settings-2.svg</file>
+        <file alias="user-round.svg">images/ui/user-round.svg</file>
+        <file alias="clock-3.svg">images/ui/clock-3.svg</file>
+        <file alias="ticket.svg">images/ui/ticket.svg</file>
+        <file alias="refresh-cw.svg">images/ui/refresh-cw.svg</file>
+        <file alias="credit-card.svg">images/ui/credit-card.svg</file>
+        <file alias="check.svg">images/ui/check.svg</file>
+        <file alias="check-white.svg">images/ui/check-white.svg</file>
+        <file alias="circle-dot.svg">images/ui/circle-dot.svg</file>
+        <file alias="arrow-left.svg">images/ui/arrow-left.svg</file>
+        <file alias="arrow-right.svg">images/ui/arrow-right.svg</file>
+        <file alias="arrow-up.svg">images/ui/arrow-up.svg</file>
+        <file alias="arrow-down.svg">images/ui/arrow-down.svg</file>
+        <file alias="chevrons-left.svg">images/ui/chevrons-left.svg</file>
+        <file alias="chevrons-right.svg">images/ui/chevrons-right.svg</file>
+        <file alias="chevron-down.svg">images/ui/chevron-down.svg</file>
+        <file alias="chevron-up.svg">images/ui/chevron-up.svg</file>
+    </qresource>
     <qresource prefix="/icon">
         <file>images/swap.png</file>
         <file>images/ticket.ico</file>

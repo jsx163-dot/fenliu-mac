@@ -21,6 +21,7 @@
 #include <QHostInfo>
 #include <QComboBox>
 #include "version.h"
+#include "appstyle.h"
 #ifdef Q_OS_MACOS
 #include "credentialstore.h"
 #endif
@@ -28,7 +29,8 @@
 LoginDialog::LoginDialog(QWidget *parent) :
     QDialog(parent)
 {
-    setWindowIcon(QIcon(_(":/icon/images/ticket.ico")));
+    setObjectName("loginDialog");
+    setWindowIcon(AppStyle::icon("train-front", QColor("#315ed4")));
 }
 
 LoginDialog::~LoginDialog()
@@ -40,11 +42,9 @@ void LoginDialog::setUp()
     tabWidget = new QTabWidget;
     QSettings setting;
 
-    QPixmap pixmap;
-    pixmap.load(QStringLiteral(":/icon/images/yy.png"));
-    logoLabel = new QLabel;
-    logoLabel->setPixmap(pixmap);
-    logoLabel->setAlignment(Qt::AlignCenter);
+    logoLabel = new QLabel(tr("12306"));
+    logoLabel->setObjectName("loginBrand");
+    logoLabel->setAlignment(Qt::AlignLeft);
 
 #ifdef HAS_CDN
     loginServerLa = new QLabel(tr("服务器: "));
@@ -63,15 +63,15 @@ void LoginDialog::setUp()
 
     QFont font;
     remindLabel1 = new QLabel;
-    remindLabel1->setStyleSheet(_("color: red"));
+    remindLabel1->setProperty("status", "error");
     font.setPointSize(10);
     remindLabel1->setFont(font);
     remindLabel1->setMargin(0);
     remindLabel1->setWordWrap(true);
-    remindLabel1->setMaximumWidth(240);
     remindLabel1->setMinimumHeight(36);
 
     QFormLayout *fLayout = new QFormLayout;
+    fLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     fLayout->addRow(logoLabel);
 #ifdef HAS_CDN
     fLayout->addRow(loginServerLa, loginServerCb);
@@ -97,7 +97,7 @@ void LoginDialog::setUp()
     vLayout->addLayout(fLayout);
     QHBoxLayout *hLayout = new QHBoxLayout;
     hLayout->addWidget(keepPasswdCB);
-    hLayout->setAlignment(Qt::AlignCenter);
+    hLayout->addStretch();
     vLayout->addLayout(hLayout);
 
     //vLayout->addWidget(label);
@@ -123,10 +123,11 @@ void LoginDialog::setUp()
     //vLayout->addSpacing(10);
     vLayout->addLayout(hLayout);
     remindLabel2 = new QLabel;
-    remindLabel2->setStyleSheet(_("color: red"));
+    remindLabel2->setProperty("status", "error");
     font.setPointSize(10);
     remindLabel2->setFont(font);
-    remindLabel2->setFixedSize(200, 20);
+    remindLabel2->setWordWrap(true);
+    remindLabel2->setMinimumHeight(24);
     vLayout->addWidget(remindLabel2);
     vLayout->addStretch();
 
@@ -137,12 +138,11 @@ void LoginDialog::setUp()
     //hLayout->addStretch();
 
     //button = new QPushButton;
-    loginPb->setText(tr("登陆"));
+    loginPb->setText(tr("登录"));
+    loginPb->setProperty("role", "primary");
     connect(loginPb, &QPushButton::clicked, this, &LoginDialog::onLogin);
     hLayout = new QHBoxLayout;
-    hLayout->addStretch();
     hLayout->addWidget(loginPb);
-    hLayout->addStretch();
 
     bool checked = setting.value(_("login/keep_passwd"), false).value<bool>();
     if (checked) {
@@ -192,7 +192,7 @@ void LoginDialog::setUp()
 
     QWidget *widget = new QWidget;
     widget->setLayout(vLayout);
-    tabWidget->addTab(widget, tr("密码登陆"));
+    tabWidget->addTab(widget, tr("密码登录"));
 
     qrCodeLabel = new ClickLabel;
     tipsLabel = new QLabel;
@@ -204,12 +204,14 @@ void LoginDialog::setUp()
     vLayout->setAlignment(Qt::AlignCenter);
     qrCodeWidget = new QWidget;
     qrCodeWidget->setLayout(vLayout);
-    tabWidget->addTab(qrCodeWidget, tr("扫码登陆"));
+    tabWidget->addTab(qrCodeWidget, tr("扫码登录"));
 
     hLayout = new QHBoxLayout;
+    hLayout->setContentsMargins(16, 12, 16, 16);
     hLayout->addWidget(tabWidget);
     setLayout(hLayout);
-    resize(QSize(300, 300));
+    setMinimumWidth(400);
+    resize(QSize(420, 480));
     connect(tabWidget, &QTabWidget::currentChanged, this, &LoginDialog::tabIndexChanged);
     connect(qrCodeLabel, &ClickLabel::clicked, this, &LoginDialog::qrCodeLabelClicked);
     //NetHelper::instance()->initLoginCookie();
@@ -222,7 +224,7 @@ void LoginDialog::setUp()
     sip.dnsAnswer("kyfw.12306.cn");
 #endif
 
-    setWindowTitle(tr("云映 ") + tr(THISVERSION));
+    setWindowTitle(tr("分流购票app · 登录"));
 }
 
 void LoginDialog::tabIndexChanged(int index)
@@ -263,7 +265,7 @@ void LoginDialog::hideQrCodeTab()
 void LoginDialog::showQrCodeTab()
 {
     if (tabWidget->count() == 1) {
-        tabWidget->addTab(qrCodeWidget, tr("扫码登陆"));
+        tabWidget->addTab(qrCodeWidget, tr("扫码登录"));
         tabWidget->setCurrentIndex(1);
     }
 }
@@ -331,7 +333,7 @@ void LoginDialog::showSmsVerification()
 
 void LoginDialog::hideSmsVerification()
 {
-    loginPb->setText(tr("登陆"));
+    loginPb->setText(tr("登录"));
     disconnect(loginPb, &QPushButton::clicked, nullptr, nullptr);
     connect(loginPb, &QPushButton::clicked, this, &LoginDialog::onLogin);
     idCardNumLe->hide();

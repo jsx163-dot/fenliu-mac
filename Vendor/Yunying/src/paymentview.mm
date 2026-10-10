@@ -117,7 +117,12 @@ public:
         setAttribute(Qt::WA_DeleteOnClose);
         setWindowTitle(QStringLiteral("分流购票app · 支付"));
         auto *layout = new QVBoxLayout(this);
+        layout->setContentsMargins(16, 12, 16, 16);
+        layout->setSpacing(12);
         auto *status = new QLabel(QStringLiteral("https://%1").arg(baseUrl.host()), this);
+        status->setObjectName("paymentDestination");
+        status->setProperty("muted", true);
+        status->setTextFormat(Qt::PlainText);
         status->setWordWrap(true);
         layout->addWidget(status);
         auto *container = new QWidget(this);

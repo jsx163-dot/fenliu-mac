@@ -21,6 +21,8 @@
 #include <QTimer>
 int runJourneyChecks(int argc, char **argv);
 int runJourneyPreview();
+int runUiChecks(int argc, char **argv);
+int runUiPreview();
 extern MainWindow *w;
 
 class MacChecks : public QObject {
@@ -159,8 +161,8 @@ private slots:
             QVERIFY(!label->openExternalLinks());
         }
         for (int width : {900, 600}) {
-            bar.resize(width, 96); bar.show(); QTest::qWait(20);
-            QCOMPARE(bar.width(), width); QCOMPARE(bar.height(), 96);
+            bar.resize(width, 80); bar.show(); QTest::qWait(20);
+            QCOMPARE(bar.width(), width); QCOMPARE(bar.height(), 80);
             QVERIFY(bar.rect().contains(sponsor->geometry()));
             QVERIFY(bar.rect().contains(advertisement->geometry()));
             QVERIFY(!sponsor->geometry().intersects(advertisement->geometry()));
@@ -184,8 +186,11 @@ private slots:
         for (int page : {0, 1}) {
             tabs->setCurrentIndex(page); QTest::qWait(20);
             QVERIFY(support->isVisible());
-            QVERIFY(support->geometry().top() >= controls->geometry().bottom());
-            QVERIFY(!support->geometry().intersects(controls->geometry()));
+            QCOMPARE(controls->isVisible(), page == 0);
+            if (page == 0) {
+                QVERIFY(support->geometry().top() >= controls->geometry().bottom());
+                QVERIFY(!support->geometry().intersects(controls->geometry()));
+            }
             QVERIFY(window.rect().contains(support->geometry()));
         }
         window.close(); w = nullptr;
@@ -200,8 +205,6 @@ static int runSupportPreview()
     QTemporaryDir settings;
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settings.path());
-    QFile qss(QStringLiteral(":/res/main.qss"));
-    if (qss.open(QFile::ReadOnly)) qApp->setStyleSheet(qss.readAll());
     MainWindow window;
     w = &window; window.setUp();
     auto *tabs = window.findChild<QTabWidget *>("bookingViews");
@@ -222,6 +225,7 @@ static int runSupportPreview()
 
 int runLocalChecks(int argc, char **argv)
 {
+    if (argc == 2 && QString::fromUtf8(argv[1]) == QStringLiteral("--ui-preview")) return runUiPreview();
     if (argc == 2 && QString::fromUtf8(argv[1]) == QStringLiteral("--support-preview")) return runSupportPreview();
     if (argc == 2 && QString::fromUtf8(argv[1]) == QStringLiteral("--journey-preview")) return runJourneyPreview();
     if (argc == 2 && QString::fromUtf8(argv[1]) == QStringLiteral("--payment-preview")) {
@@ -235,7 +239,7 @@ int runLocalChecks(int argc, char **argv)
     }
     MacChecks checks;
     const int original = QTest::qExec(&checks, argc, argv);
-    return original | runJourneyChecks(argc, argv);
+    return original | runJourneyChecks(argc, argv) | runUiChecks(argc, argv);
 }
 
 #include "macchecks.moc"

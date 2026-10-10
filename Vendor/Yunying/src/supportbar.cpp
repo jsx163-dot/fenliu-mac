@@ -16,26 +16,20 @@ SupportBar::SupportBar(QWidget *parent) : QFrame(parent)
 {
     setObjectName("supportBar");
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    setFixedHeight(96);
-    setStyleSheet(QStringLiteral(
-        "QFrame#supportBar { background: #f5f7f6; border-top: 1px solid #d8ddda; }"
-        "QLabel#sponsorPlaceholder { color: #6a726d; border: 1px dashed #9ca8a0; border-radius: 4px; }"
-        "QLabel#sponsorStatus, QLabel#advertisingStatus { color: #6a726d; }"
-        "QLabel#advertisingBadge { color: #666666; }"
-        "QFrame#advertisingSlot { background: #ffffff; border: 1px dashed #b4bcb7; border-radius: 4px; }"));
+    setFixedHeight(80);
     auto *layout = new QHBoxLayout(this);
     layout->setContentsMargins(16, 12, 16, 12);
     layout->setSpacing(16);
 
     auto *sponsor = new QWidget(this);
     sponsor->setObjectName("sponsorSlot");
-    sponsor->setFixedWidth(244);
+    sponsor->setFixedWidth(224);
     auto *sponsorLayout = new QHBoxLayout(sponsor);
     sponsorLayout->setContentsMargins(0, 0, 0, 0);
     sponsorLayout->setSpacing(12);
     auto *code = plainLabel(tr("收款码"), "sponsorPlaceholder", sponsor);
     code->setAlignment(Qt::AlignCenter);
-    code->setFixedSize(64, 64);
+    code->setFixedSize(56, 56);
     sponsorLayout->addWidget(code);
     auto *sponsorText = new QVBoxLayout;
     sponsorText->setSpacing(4);
@@ -57,7 +51,7 @@ SupportBar::SupportBar(QWidget *parent) : QFrame(parent)
     auto *advertisement = new QFrame(this);
     advertisement->setObjectName("advertisingSlot");
     advertisement->setMinimumWidth(200);
-    advertisement->setFixedHeight(64);
+    advertisement->setFixedHeight(56);
     auto *adLayout = new QHBoxLayout(advertisement);
     adLayout->setContentsMargins(12, 8, 12, 8);
     adLayout->setSpacing(12);

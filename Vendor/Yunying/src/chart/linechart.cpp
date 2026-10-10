@@ -8,6 +8,10 @@ LineChartView::LineChartView(QWidget *parent) : QDialog(parent)
 {
     series = new QLineSeries;
     chart = new QChart;
+    chart->setBackgroundBrush(QColor("#ffffff"));
+    chart->setBackgroundRoundness(0);
+    chart->setMargins(QMargins(4, 4, 4, 4));
+    series->setColor(QColor("#315ed4"));
 
     valueMax = 0;
     valueMaxIndex = 0;
@@ -20,6 +24,10 @@ LineChartView::LineChartView(QWidget *parent) : QDialog(parent)
     chart->addSeries(series);
 
     chart->createDefaultAxes();
+    for (auto *axis : chart->axes()) {
+        axis->setLabelsColor(QColor("#737d8d"));
+        axis->setLinePenColor(QColor("#dce1e8"));
+    }
     QList<QAbstractAxis *> absSeries = chart->axes(Qt::Horizontal);
     if (!absSeries.isEmpty()) {
         absSeries[0]->setRange(0, 8);
@@ -36,6 +44,7 @@ LineChartView::LineChartView(QWidget *parent) : QDialog(parent)
     view = new QChartView(chart);
     view->setRenderHint(QPainter::Antialiasing);
     QVBoxLayout *vlayout = new QVBoxLayout;
+    vlayout->setContentsMargins(0, 0, 0, 0);
     vlayout->addWidget(view);
     setLayout(vlayout);
     resize(600, 400);
