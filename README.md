@@ -28,21 +28,38 @@ CDN 源码保留但不启用：上游需要改版 Qt 的 `setIpAddress`，标准
 
 ### 构建与检查
 
-安装构建依赖并打包：
+兼容构建目标为 **Intel：macOS 10.15+；Apple Silicon：macOS 11+**。Apple Silicon 没有 macOS 10.x；更早的 Intel 10.x 不在本轮兼容目标内。使用 Qt 官方 6.2.4 双架构 SDK，不使用按当前系统编译的 Homebrew Qt。此版本 Qt 已较旧，不能视为仍有安全维护的最新运行库。
+
+需要 Command Line Tools、Python 3.9+ 和 Qt 官方 SDK。通过 aqtinstall 获取 SDK 并打包：
 
 ```sh
-brew install qtbase qtcharts qtmultimedia
-sh scripts/package-yunying.sh
+python3 -m venv .build-yunying/aqt-venv
+.build-yunying/aqt-venv/bin/pip install aqtinstall==3.3.0
+.build-yunying/aqt-venv/bin/aqt install-qt mac desktop 6.2.4 clang_64 \
+  -O .build-yunying/qt-compat -m qtcharts qtmultimedia \
+  --archives qtbase qtcharts qtmultimedia qtsvg qttools
+QT_BIN="$PWD/.build-yunying/qt-compat/6.2.4/macos/bin" sh scripts/package-yunying.sh
 open "dist/分流购票app.app"
 ```
 
-打包包含 Qt 运行库、GPLv3 和上游归属说明，使用 ad-hoc 本地签名，无需另装 Qt 即可打开。当前脚本为本机架构和本机 macOS 版本构建，不是跨系统版本/双架构发行包，也没有 Apple 公证。当前机器的 Homebrew Qt 构建要求 macOS 27。
+默认构建包含 `x86_64` 和 `arm64` 的 Universal 应用，也可设置 `MAC_ARCHS=x86_64` 或 `MAC_ARCHS=arm64` 生成单架构包。`MAC_SDK` 可指定本机已安装的 SDK 名称，SDK 版本不等于最低运行系统版本。打包脚本在构建前检查 QtCore，打包后检查所有 Mach-O 文件的架构、最低系统版本及应用内依赖，拒绝虚假降低 plist 要求或依赖本机 Homebrew 库的包。
+
+推荐使用 Xcode 13/14 的工具链和 SDK。过新的 SDK 可能移除 Qt 6.2 需要的 AGL 框架，新的 libc++ 也可能不再支持 10.15。本机如已有旧 SDK，可用 `MAC_SDK=macosx11.1` 选择；若当前工具链缺少配套 C++ 头文件，还需通过 `MAC_CXX_HEADERS` 指定兼容的 libc++ 源码 `include` 目录（其上一级须保留 `LICENSE.TXT`，会一并打包），不能只降低版本标记忽略这些问题。
+
+本机兼容构建使用 macOS 11.1 SDK 和 [LLVM libc++ 12.0.1 头文件](https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/libcxx-12.0.1.src.tar.xz)，不额外打包系统 libc++ 动态库。Qt 6.2 的部署工具通过 `scripts/compat-tools/otool` 检查单个架构以兼容其旧输出解析逻辑，之后独立校验器会检查整个应用的两个架构。
+
+打包包含 Qt 运行库、GPLv3 和上游归属说明，使用 ad-hoc 本地签名，没有 Apple 公证，无需用户另装 Qt。上述版本是构建兼容目标，仍需对应系统实机验证。GitHub 的 `v0.4.0-local.1` 旧安装包仍为 arm64/macOS 27+，修改构建脚本不会改变已发布文件。
 
 离线检查（使用内存模拟钥匙串，不读取真实凭证，不登录、下单或支付）：
 
 ```sh
-sh scripts/check-yunying.sh
+python3 -B -m unittest discover -s Tests -p 'test_*.py' -v
+QT_BIN="$PWD/.build-yunying/qt-compat/6.2.4/macos/bin" sh scripts/check-yunying.sh
 ```
+
+离线检查也默认构建双架构，`TEST_ARCH=x86_64` 可在安装 Rosetta 的 Apple Silicon Mac 上运行 Intel 检查；这不能代替 macOS 10.15 实机测试。检查和打包的临时构建目录相互隔离。
+
+本轮本机验证：兼容校验器 11/11；Universal 包及解压后的 21 个 Mach-O 文件、依赖与签名通过；仅使用随包运行库的离线副本中 MacChecks 11/11、JourneyChecks 42/42、UiChecks 9/10。剩余 UI 断言要求窗口 1440×900，但当前屏幕实际限制为 1440×895，此历史检查问题未在兼容任务中扩展修改。Intel 执行环境、macOS 10.15/11 实机和真实购票流程尚未验证，不保证出票。
 
 许可证仍为 GPLv3，见 `Vendor/Yunying/LICENSE` 与 `ORIGIN.md`。本地自用不要求公开发布源码；日后分发此衍生版仍须履行适用的 GPL 义务，不能把换界面视为可闭源分发的依据。
 

@@ -120,6 +120,7 @@ private slots:
         model.setData(model.index(0, ETOSTATIONCOL), QStringLiteral("上海虹桥"), Qt::ToolTipRole);
         model.setData(model.index(0, EARRIVETIMECOL), "18:15");
         IconDelegate delegate;
+        view.ensurePolished();
         for (int column : {EFROMSTATIONCOL, ETOSTATIONCOL, EARRIVETIMECOL}) {
             QStyleOptionViewItem option;
             option.initFrom(&view);
@@ -132,6 +133,7 @@ private slots:
             QPainter painter(&pixels);
             delegate.paint(&painter, option, model.index(0, column));
             painter.end();
+            if (capture) QVERIFY(pixels.save(QStringLiteral("/tmp/fenliu-selected-%1.png").arg(column)));
             const QColor text = option.palette.color(QPalette::HighlightedText);
             int readable = 0;
             for (int y = 8; y < 30; ++y)

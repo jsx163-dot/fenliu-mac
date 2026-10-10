@@ -1,0 +1,13 @@
+Legacy-compatible builds use the official, unmodified Qt 6.2.4 macOS SDK.
+Copyright (C) The Qt Company Ltd. and other Qt contributors.
+Qt is distributed here under GPLv3. See Yunying-GPLv3.txt for the license.
+Qt Charts and other bundled modules retain their upstream copyright notices.
+
+Complete corresponding Qt source (including third-party notices):
+https://download.qt.io/archive/qt/6.2/6.2.4/single/qt-everywhere-src-6.2.4.tar.xz
+Binary SDK origin:
+https://download.qt.io/online/qtsdkrepository/mac_x64/desktop/qt6_624/
+Modules: qtbase, qtcharts, qtmultimedia, qtsvg.
+
+Qt 6.2.4 is an old release. Supporting legacy macOS does not imply that this
+runtime or the operating system is still receiving current security updates.

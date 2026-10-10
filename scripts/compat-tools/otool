@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+# Qt 6.2 macdeployqt expects one architecture's otool output. The complete
+# universal bundle is independently checked for BOTH architectures afterwards.
+case "${MACDEPLOY_ARCH:-}" in
+    x86_64|arm64) exec /usr/bin/otool -arch "$MACDEPLOY_ARCH" "$@" ;;
+    *) printf 'MACDEPLOY_ARCH must be x86_64 or arm64\n' >&2; exit 1 ;;
+esac
